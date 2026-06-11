@@ -37,6 +37,9 @@ remote_app = client.agent_engines.create(
         "requirements": ["google-cloud-aiplatform[adk,agent_engines]", "cloudpickle", "pydantic"],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
+        "env_vars": {
+            "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "False",
+        },
     },
 )
 
