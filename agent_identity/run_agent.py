@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
+from agent import root_agent as agent
+
 
 # Locate script parent directory and load configuration from .env
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,7 +14,8 @@ load_dotenv(os.path.join(script_dir, "..", ".env"))
 
 # Resolve required configuration parameters
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
-LOCATION = os.getenv("GCP_RESOURCES_LOCATION")
+LOCATION = "us-central1"
+STAGING_BUCKET = "gs://adk-sandbox-bucket"
 
 # Initialize the Agent Platform client with v1beta1 API for agent identity support
 print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION})...")
@@ -29,10 +32,11 @@ app = AdkApp(agent=agent)
 remote_app = client.agent_engines.create(
     agent=app,
     config={
-        "display_name": "running-agent-with-identity",
+        "display_name": "Agent Identity",
         "identity_type": types.IdentityType.AGENT_IDENTITY,
-        "requirements": ["google-cloud-aiplatform[adk,agent_engines]"],
-        # "staging_bucket": staging_bucket_uri,
+        "requirements": ["google-cloud-aiplatform[adk,agent_engines]", "cloudpickle", "pydantic"],
+        "staging_bucket": STAGING_BUCKET,
+        "extra_packages": ["agent.py"],
     },
 )
 
