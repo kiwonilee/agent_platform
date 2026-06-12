@@ -1,6 +1,6 @@
-# ADK 코드 실행기 (Code Executor) 가이드
+# ADK 코드 실행기 (Code Executor) 가이드 (#Agent Sandbox, #Code Execution, #Agent Runtime)
 
-ADK(Agent Development Kit) 에이전트에서 데이터 분석이나 수치 연산을 위해 파이썬 코드를 작성하고 실행할 때 선택할 수 있는 **두 가지 코드 실행 방식(Code Execution Options)** 에 대한 비교 및 가이드입니다.
+ADK(Agent Development Kit) 에이전트에서 데이터 분석이나 수치 연산을 위해 파이썬 코드를 작성하고 실행할 때 선택할 수 있는 **두 가지 코드 실행 방식(Code Execution Options)** 에 대한 비교 및 원격 배포·테스트 가이드입니다.
 
 ---
 
@@ -48,20 +48,72 @@ Gemini 모델의 Code Execution Extension(코드 실행 확장 프로그램)과 
 | **컴퓨팅 자원 제어** | 사용자가 사양(CPU, RAM) 설정 가능 | 제공되는 사양으로 고정 |
 | **대화 상태 보존 (State)** | 세션별 최대 14일 동안 상태 및 변수 보존 | 단일 대화 세션의 연속 턴 동안 유지 |
 | **개발 성숙도** | ✅ 엔터프라이즈 프로덕션 권장 | ⚠️ 빠른 프로토타이핑 및 데모 용도 |
-| **입력 (Input)** | 에이전트가 해석할 `Executable code` | 프롬프트(`Prompt`) |
-| **출력 (Output)** | 샌드박스로부터의 `Code execution result` | Gemini API를 통한 코드 수행 결과물 |
 | **최적 시나리오** | 프로덕션 에이전트, 멀티 모델, 파일 저장이 필요할 때 | 빠른 시연, PoC, Gemini 전용 에이전트 |
 
 ---
 
-## 💡 최종 선택 가이드라인
+## 🚀 배포 가이드 (`AgentEngineSandboxCodeExecutor` 기반)
 
-**다음과 같은 경우 `AgentEngineSandboxCodeExecutor`를 사용하십시오:**
-- 기업용 프로덕션 환경에 적용하는 에이전트를 개발할 때
-- 차트 이미지, 리포트 문서 등 실행 결과 파일들을 GCS에 자동 저장하고 장기간 보존하고 싶을 때
-- 코드 실행 시 더 많은 CPU와 메모리 자원을 할당하여 연산 성능을 보강해야 할 때
+`agent_sandbox/agent_runtime.py` 스크립트를 실행하여 샌드박스를 우선 독립 생성하고, 에이전트 로직을 원격 런타임에 단일 스텝으로 배포합니다:
 
-**다음과 같은 경우 `BuiltInCodeExecutor`를 사용하십시오:**
-- 아이디어를 빠르게 코드로 구현하고 모델 검증을 시도할 때 (Rapid Prototyping)
-- 복잡한 클라우드 아키텍처나 추가 인프라 구축 없이 오직 Gemini API만 활용해 가볍게 구성하고 싶을 때
-- 결과물 파일을 저장할 필요 없이 빠른 텍스트 요약 및 경량 연산만 요구될 때
+```bash
+uv run python agent_runtime.py
+```
+
+* 배포가 완료되면 콘솔 창에 **Sandbox Resource Name**과 최종 **Remote Agent Name** 정보가 출력됩니다.
+
+---
+
+## 🔍 테스트
+
+### 1단계: 최초 1회 대화 세션 생성
+```bash
+export REASONING_ENGINE_ID="5761272154511376384"
+export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
+
+curl -X POST \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:query \
+  -d '{
+    "class_method": "create_session",
+    "input": {
+      "user_id": "test_user"
+    }
+  }'
+```
+
+**출력 예시 (`output`)**
+```json
+{
+  "output": {
+    "last_update_time": 1781269005.17933,
+    "events": [],
+    "state": {},
+    "app_name": "5761272154511376384",
+    "id": "5918349553886560256",
+    "user_id": "test_user"
+  }
+}
+```
+
+발급받은 `"id"` 값을 복사하여 환경 변수로 할당합니다:
+```bash
+export SESSION_ID="5918349553886560256"
+```
+
+### 2단계: 첫 번째 질문 던지기 (샌드박스 연산 요청)
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
+  -d '{
+    "class_method": "async_stream_query",
+    "input": {
+      "user_id": "test_user",
+      "session_id": "${SESSION_ID}",
+      "message": "10의 9제곱에서 12의 5제곱을 뺀 값을 파이썬 코드로 계산해서 알려줘."
+    }
+  }'
+```

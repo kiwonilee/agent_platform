@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import sys
-from dotenv import load_dotenv, dotenv_values
 import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
@@ -18,14 +17,9 @@ client = vertexai.Client(
     location=LOCATION
 )
 
-# create an Agent Platform instance
-print("Creating Agent Platform instance...")
-agent_engine = client.agent_engines.create()
-agent_engine_name = agent_engine.api_resource.name
-
-# create Agent Sandbox
-# https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/code-execution-quickstart#create_a_sandbox
-print(f"Creating Agent Sandbox under {agent_engine_name}...")
+# 1. Create Agent Sandbox independently
+parent_name = f"projects/{PROJECT_ID}/locations/{LOCATION}"
+print(f"Creating Agent Sandbox under {parent_name}...")
 operation = client.agent_engines.sandboxes.create(
     spec={
         "code_execution_environment": {            
@@ -33,17 +27,19 @@ operation = client.agent_engines.sandboxes.create(
             "machine_config": "MACHINE_CONFIG_VCPU4_RAM4GIB", # 컴퓨팅 자원 설정
         }
     },
-    name=agent_engine_name,
+    name=parent_name,
     config=types.CreateAgentEngineSandboxConfig(display_name="Agent Sandbox")
 )
 sandbox_name = operation.response.name
 print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
 
-# Use the proper wrapper class for your Agent Framework
+# 2. Import Agent
+from agent import data_analyst as agent
+
 print("Wrapping agent in AdkApp...")
 adk_app = AdkApp(agent=agent)
 
-# Deploy Agent to Vertex AI Agent Runtime
+# 3. Deploy Agent to Vertex AI Agent Runtime in a single step
 remote_app = client.agent_engines.create(
     agent=adk_app,
     config={
@@ -52,7 +48,8 @@ remote_app = client.agent_engines.create(
             "google-adk",
             "google-cloud-aiplatform[adk,agent_engines]",
             "cloudpickle",
-            "pydantic"],
+            "pydantic"
+        ],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
         "env_vars": {
@@ -65,7 +62,9 @@ remote_app = client.agent_engines.create(
             # Telemetry            
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
-            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY"
+            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+            # Agent Sandbox
+            "SANDBOX_RESOURCE_NAME": sandbox_name,
         }
     },
 )
