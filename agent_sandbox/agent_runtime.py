@@ -56,6 +56,7 @@ remote_app = client.agent_engines.create(
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
         "env_vars": {
+            "GOOGLE_CLOUD_LOCATION": "global",
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
             # SessionService, MemoryService, ArtifactService
             "ADK_SESSION_SERVICE_URI": "agentengine://",
