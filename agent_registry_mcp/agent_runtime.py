@@ -43,7 +43,6 @@ remote_agent = client.agent_engines.create(
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
         "env_vars": {
-            "GOOGLE_CLOUD_LOCATION": "global",
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
             # SessionService, MemoryService, ArtifactService
             "ADK_SESSION_SERVICE_URI": "agentengine://",
@@ -70,10 +69,11 @@ print("\n[ 🔒 Required IAM Role Assignment Commands ]")
 print("# Grant BigQuery query/view, Vertex AI call, and Storage permissions to the Agent Identity:")
 for role in [
     "roles/bigquery.dataViewer",
-    "roles/bigquery.jobUser",
-    "roles/aiplatform.user",
+    "roles/bigquery.jobUser",    
     "roles/storage.objectAdmin",
+    "roles/aiplatform.user",
+    "roles/mcp.toolUser"
 ]:
     print(f"gcloud projects add-iam-policy-binding {PROJECT_ID} \\")
-    print(f"    --member=\"principal://{effective_identity}\" \\")
+    print(f"    --member=\"{effective_identity}\" \\")
     print(f"    --role=\"{role}\"")
