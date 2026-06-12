@@ -21,8 +21,30 @@ client = vertexai.Client(
     location=LOCATION
 )
 
-# 1. Skip independent Sandbox creation since we are using BuiltInCodeExecutor
-print("Using BuiltInCodeExecutor (no managed sandbox pre-creation required)...")
+# 1. Create top-level AgentEngine container and a managed sandbox under it
+print("Creating top-level AgentEngine container...")
+try:
+    agent_engine = client.agent_engines.create()
+    container_name = agent_engine.api_resource.name
+    print(f"✅ AgentEngine container created: {container_name}")
+    
+    print(f"Creating Agent Sandbox under {container_name}...")
+    operation = client.agent_engines.sandboxes.create(
+        name=container_name,
+        config=types.CreateAgentEngineSandboxConfig(display_name="Agent Sandbox"),
+        spec={
+            "code_execution_environment": {            
+                "code_language": "LANGUAGE_PYTHON",  # Programming language for execution
+                "machine_config": "MACHINE_CONFIG_VCPU4_RAM4GIB", # Resource settings
+            }
+        }
+    )
+    sandbox_name = operation.response.name
+    print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
+except Exception as e:
+    print(f"\n❌ Error creating Sandbox: {e}")
+    sys.exit(1)
+
 
 # 2. Import Agent
 from agent import data_analyst as agent
@@ -31,6 +53,7 @@ print("Wrapping agent in AdkApp...")
 adk_app = AdkApp(agent=agent)
 
 # 3. Deploy Agent to Vertex AI Agent Runtime in a single step
+print("Deploying Agent to Vertex AI Agent Runtime...")
 remote_app = client.agent_engines.create(
     agent=adk_app,
     config={
@@ -43,7 +66,7 @@ remote_app = client.agent_engines.create(
         ],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
-         "env_vars": {
+        "env_vars": {
             "GOOGLE_CLOUD_LOCATION": "global",
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
             # SessionService, MemoryService, ArtifactService
@@ -54,8 +77,8 @@ remote_app = client.agent_engines.create(
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
-            # Built-In Code Executor Configuration
-            "CODE_EXECUTOR_TYPE": "BUILTIN",
+            # Sandbox configuration injection
+            "SANDBOX_RESOURCE_NAME": sandbox_name,
         }
     },
 )

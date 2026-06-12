@@ -1,27 +1,20 @@
 # https://adk.dev/integrations/code-exec-agent-runtime/
 # 
-# The two code execution options are:
-# 1. AgentEngineSandboxCodeExecutor - Uses Vertex AI's managed sandbox (what we've been using)
-# 2. BuiltInCodeExecutor - ADK's native code execution (simpler, integrated)
+# Using AgentEngineSandboxCodeExecutor to run Python code safely inside
+# Vertex AI's managed sandbox environment.
 
 import os
 from google.adk.agents.llm_agent import Agent
-from google.adk.code_executors.built_in_code_executor import BuiltInCodeExecutor
 from google.adk.code_executors.agent_engine_sandbox_code_executor import AgentEngineSandboxCodeExecutor
 
-# Determine code executor type (BUILTIN by default, SANDBOX if specified)
-executor_type = os.getenv("CODE_EXECUTOR_TYPE", "SANDBOX").upper()
-
-if executor_type == "SANDBOX":
-    sandbox_resource_name = os.getenv(
-        "SANDBOX_RESOURCE_NAME",
-        "projects/123456789012/locations/us-central1/sandboxes/123456789012"
-    )
-    code_executor = AgentEngineSandboxCodeExecutor(
-        sandbox_resource_name=sandbox_resource_name
-    )
-else:
-    code_executor = BuiltInCodeExecutor()
+# Explicitly use AgentEngineSandboxCodeExecutor
+sandbox_resource_name = os.getenv(
+    "SANDBOX_RESOURCE_NAME",
+    "projects/123456789012/locations/us-central1/sandboxes/123456789012"
+)
+code_executor = AgentEngineSandboxCodeExecutor(
+    sandbox_resource_name=sandbox_resource_name
+)
 
 data_analyst = Agent(
     model="gemini-3.5-flash",
@@ -39,6 +32,7 @@ data_analyst = Agent(
     code_executor=code_executor,
     output_key="analysis_result",  # Store result in session state
 )
+
 
 
 
