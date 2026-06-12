@@ -8,13 +8,16 @@ from google.adk.agents.llm_agent import Agent
 from google.adk.code_executors.agent_engine_sandbox_code_executor import AgentEngineSandboxCodeExecutor
 
 # Explicitly use AgentEngineSandboxCodeExecutor
-sandbox_resource_name = os.getenv(
-    "SANDBOX_RESOURCE_NAME",
-    "projects/123456789012/locations/us-central1/sandboxes/123456789012"
-)
-code_executor = AgentEngineSandboxCodeExecutor(
-    sandbox_resource_name=sandbox_resource_name
-)
+sandbox_resource_name = os.getenv("SANDBOX_RESOURCE_NAME")
+
+if sandbox_resource_name:
+    code_executor = AgentEngineSandboxCodeExecutor(
+        sandbox_resource_name=sandbox_resource_name
+    )
+else:
+    # If not set, let the SDK lazily create or manage sandbox environments using ambient project/location settings.
+    code_executor = AgentEngineSandboxCodeExecutor()
+
 
 data_analyst = Agent(
     model="gemini-3.5-flash",
