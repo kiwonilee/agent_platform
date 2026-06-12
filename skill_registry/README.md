@@ -26,7 +26,7 @@ google_cloud_ops_agent/
 ├── tools.py                # 절차적 GCP MCP 도구 세트 로더 (자기 완결형 구조)
 ├── skills.py               # RAG 플레이북 스킬 실시간 탐색 도구 (패키지 바인딩)
 └── agent_platform/         # AgentPlatform SRE 행정 및 배포 관리 패키지
-    ├── runtime.py          # 프로덕션 원스톱 원클릭 배포 스크립트
+    ├── agent_runtime.py    # 프로덕션 원스톱 원클릭 배포 스크립트
     └── skill_registry.py   # RAG 스킬 플레이북 등록/삭제 관리 CLI 툴
 ```
 
@@ -136,10 +136,10 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} --member="serviceAccount:${
 ```
 
 ### 2. 배포 스크립트 원클릭 실행
-`.env` 설정이 완비된 상태에서 전용 통합 배포 자동화 파일인 `agent_platform/runtime.py`를 원클릭 구동합니다:
+설정이 완료된 상태에서 전용 통합 배포 자동화 파일인 `agent_platform/agent_runtime.py`를 원클릭 구동합니다:
 
 ```bash
-uv run agent_platform/runtime.py
+uv run agent_platform/agent_runtime.py
 ```
   
 배포가 성공하면 콘솔에 고유 원격 리소스 URI 주소가 출력됩니다: `projects/{project_number}/locations/us-central1/reasoningEngines/{engine_id}`
@@ -154,7 +154,7 @@ uv run agent_platform/runtime.py
 ## 🛠️ Gemini Enterprise Skill Registy 관리 도구
 
 > [!NOTE]
-> 본 도구는 **AgentPlatform 배포(`runtime.py`) 파이프라인과는 완전히 독립적으로 동작하는 별개의 관리용 CLI 도구**입니다. SRE 관리자가 원격 스킬 레지스트리(Playbook Database) 내의 지식을 상시 등록, 조회, 삭제 및 RAG 검색 테스트를 수행할 때 사용합니다.
+> 본 도구는 **AgentPlatform 배포(`agent_runtime.py`) 파이프라인과는 완전히 독립적으로 동작하는 별개의 관리용 CLI 도구**입니다. SRE 관리자가 원격 스킬 레지스트리(Playbook Database) 내의 지식을 상시 등록, 조회, 삭제 및 RAG 검색 테스트를 수행할 때 사용합니다.
 
 SRE 관리자를 위하여, 의미론적으로 탐색하여 동적으로 꺼내 쓸 수 있는 SRE 플레이북 지식 데이터베이스를 제어하는 전용 CLI 도구 `agent_platform/skill_registry.py`를 제공합니다.
 

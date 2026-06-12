@@ -1,65 +1,44 @@
-# BigQuery MCP Data Science Agent
+# Agent Registry & BigQuery MCP 에이전트
 
-An enterprise-grade, high-speed **Single-Agent Data Science Architect** built on the Google **ADK (Agent Development Kit)** framework. This agent directly utilizes the **GCP Agent Registry** and **BigQuery MCP (Model Context Protocol)** toolsets to query enterprise datasets, execute SQL analytics, and generate beautiful summarized reports.
+이 프로젝트는 **GCP Agent Registry**와 **MCP(Model Context Protocol)** 도구 세트를 활용하여 엔터프라이즈 데이터셋을 조회하고 SQL 분석 및 요약 리포트를 생성하는 고성능 단일 에이전트 아키텍처를 안내합니다.
 
----
-
-## 🚀 Core Features
-
-*   **Managed MCP Integration**: Utilizes the native GCP Agent Registry to resolve and securely attach enterprise BigQuery MCP toolsets in a single, high-speed flow.
-*   **Memory Bank Integration**: Supports `PreloadMemoryTool` and `add_session_to_memory_callback` for continuous, cross-session conversational memory on production Agent Engine environments.
-*   **Unified Python Environment**: Packaged and optimized via `uv` for seamless, robust dependency resolution and virtual environment management.
-*   **Seamless Production Deployment**: Supported by a production-ready Vertex AI Agent Engine (Reasoning Engine) deployment script ([ap_runtime.py](file:///usr/local/google/home/kiwonlee/workspace/agents/bq_mcp_agent/ap_runtime.py)).
+Google **ADK (Agent Development Kit)** 프레임워크를 기반으로 구축되었으며, 외부 설정 파일(`.env`) 없이 Python 코드 내에서 직접 설정을 관리하는 간결하고 강력한 구조를 채택했습니다.
 
 ---
 
-## 📁 Repository Directory Layout
+## 🚀 주요 기능
+
+* **관리형 MCP 통합**: GCP Agent Registry를 네이티브하게 호출하여 원격 BigQuery MCP 도구 세트를 단일 흐름으로 안전하게 장착합니다.
+* **메모리 뱅크 연동**: 프로덕션 Agent Engine 환경에서 크로스 세션(Cross-session) 대화 상태를 연속 유지하기 위한 세션/메모리 서비스 연결을 지원합니다.
+* **통합 패키지 관리**: `uv`를 통해 빠르고 견고하게 가상 환경 및 패키지 의존성을 격리·관리합니다.
+* **원클릭 프로덕션 배포**: [agent_runtime.py](file:///usr/local/google/home/kiwonlee/workspace/agents/agent_platform/agent_registry_mcp/agent_runtime.py) 스크립트를 통해 Vertex AI Agent Engine에 단 한 번의 실행으로 즉시 배포됩니다.
+
+---
+
+## 📁 디렉터리 구조
 
 ```
-bq_mcp_agent/
-├── README.md               # Developer manual and instructions
-├── pyproject.toml          # Python package and dependency configurations
-├── uv.lock                 # Locked dependencies
-├── .env.template           # Template for local environment variables
-├── .env                    # Local environment variables (gitignored)
-├── __init__.py             # Exposes app and root_agent
-├── agent.py                # Single-Agent Data Science definition
-└── ap_runtime.py           # Production one-click Vertex AI Agent Runtime deployment script
+agent_registry_mcp/
+├── README.md               # 개발자 안내 및 명령어 가이드
+├── pyproject.toml          # 패키지 및 의존성 명세
+├── uv.lock                 # 잠금 처리된 패키지 버전
+├── agent.py                # 단일 에이전트 및 MCP 도구 정의
+└── agent_runtime.py        # Vertex AI Agent Runtime 원클릭 프로덕션 배포 스크립트
 ```
 
 ---
 
-## ⚙️ Setup & Configuration
+## ⚙️ 설정 및 인증
 
-### 1. Authentication Scopes (Crucial)
-This agent interacts with the **GCP Agent Registry** to resolve MCP toolsets. When authenticating Application Default Credentials (ADC) locally, you **must** request the `cloud-platform` scope to avoid `403 Forbidden (ACCESS_TOKEN_SCOPE_INSUFFICIENT)` errors:
+### 1. 인증 스코프 (필수)
+에이전트가 GCP Agent Registry를 호출하여 MCP 도구를 가져오려면 로컬 환경 인증 시 반드시 `cloud-platform` 스코프를 포함해야 `403 Forbidden` 에러를 방지할 수 있습니다.
 
 ```bash
 gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform
 ```
 
-### 2. Environment File (`.env`)
-Copy the `.env.template` to `.env` in the root of `bq_mcp_agent/` and configure your GCP project variables:
-
-```bash
-cp .env.template .env
-```
-
-Your `.env` file should be configured with your GCP project variables and target model:
-
-```ini
-# Project configurations
-GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
-GOOGLE_CLOUD_LOCATION="global"
-GOOGLE_GENAI_USE_VERTEXAI=TRUE
-
-# Disable mTLS to bypass local OpenSSL decoding issues during deployment
-GOOGLE_API_USE_CLIENT_CERTIFICATE="false"
-GOOGLE_API_USE_MTLS_ENDPOINT="never"
-```
-
-### 3. Dependency Resolution
-Resolve and lock all ADK, GCP, and MCP dependencies using `uv`:
+### 2. 패키지 의존성 동기화
+`uv`를 사용하여 모든 ADK 및 MCP 관련 의존성을 동기화하고 활성화합니다:
 
 ```bash
 uv sync
@@ -68,41 +47,33 @@ source .venv/bin/activate
 
 ---
 
-## 💻 Execution Commands
+## 💻 로컬 실행 명령어
 
-Run all command variants directly from the `bq_mcp_agent/` root directory:
+`agent_registry_mcp/` 폴더 내에서 아래 명령어들을 실행하여 로컬 대화형 세션을 시작할 수 있습니다:
 
-### A. Launch Interactive CLI Mode
-To boot up a real-time conversational command-line session directly inside your terminal, run:
+### A. 대화형 CLI 모드 실행
+터미널 창에서 실시간으로 대화하며 BigQuery 조회 및 분석을 수행합니다:
 ```bash
 uv run adk run .
 ```
 
-### B. Launch the Developer Web UI
-To launch the background FastAPI server and interact via the Web UI interface:
+### B. 개발자 웹 UI 실행
+백그라운드에 FastAPI 서버를 띄우고 직관적인 웹 채팅 인터페이스를 엽니다:
 ```bash
 uv run adk web .
 ```
-Once initialized, navigate your browser to the URL printed in the terminal (usually `http://127.0.0.1:8086/dev-ui/`).
+실행 후 터미널에 출력된 URL(기본값 `http://127.0.0.1:8086/dev-ui/`)로 접속합니다.
 
 ---
 
-## 🚀 Gemini Enterprise Agent Runtime Deployment (Vertex AI Agent Engine)
+## 🚀 Vertex AI Agent Runtime 프로덕션 배포
 
-For serverless, managed API deployments, you can upload this Data Science Orchestrator Agent to **Vertex AI Agent Engine (Reasoning Engine)**.
-
-### 1. Provision IAM Scopes for Agent Identity
-When deploying with Agent Identity (`identity_type=AGENT_IDENTITY`), Google Cloud automatically generates a read-only, system-attested principal identifier for your Agent Runtime instance upon creation:
-`principal://iam.googleapis.com/projects/{PROJECT_NUMBER}/locations/global/workloadIdentityPools/...`
-
-Grant the necessary BigQuery, Vertex AI, and Storage Admin scopes to your project's Agent Engine Workload Identity Pool or directly via your Google Cloud console to authorize your deployed Agent to read BigQuery tables and call Gemini.
-
-### 2. Execute the Deployment Script
-Once `.env` configurations are finalized, execute the dedicated [ap_runtime.py](file:///usr/local/google/home/kiwonlee/workspace/agents/bq_mcp_agent/ap_runtime.py) script with `uv`:
+### 1. 배포 스크립트 실행
+[agent_runtime.py](file:///usr/local/google/home/kiwonlee/workspace/agents/agent_platform/agent_registry_mcp/agent_runtime.py) 스크립트를 실행하여 관리형 서버리스 환경인 Vertex AI Agent Engine에 배포합니다:
 
 ```bash
-uv run python ap_runtime.py
+uv run python agent_runtime.py
 ```
 
-Upon successful deployment, the script will print both the remote Resource URI and the runtime's **Effective Identity**. You can use the URI to trigger remote data-science chat sessions:
-`projects/{project_number}/locations/us-central1/reasoningEngines/{engine_id}`
+배포가 성공적으로 완료되면 콘솔에 원격 에이전트의 리소스 URI와 할당된 **Effective Identity(유효 ID)** 가 출력됩니다.
+출력된 리소스 URI를 통해 언제든 원격 데이터 분석 세션을 호출할 수 있습니다.

@@ -8,21 +8,15 @@
 
 ## 1. 프로젝트 구조 및 요구 사항
 
-- **[run_agent.py](file:///usr/local/google/home/kiwonlee/workspace/agents/agent_platform/agent_identity/run_agent.py)**: 원격 Vertex AI Agent Platform에 에이전트를 배포하고 `AGENT_IDENTITY`를 설정하는 실행 스크립트
+- **[agent_runtime.py](file:///usr/local/google/home/kiwonlee/workspace/agents/agent_platform/agent_identity/agent_runtime.py)**: 원격 Vertex AI Agent Platform에 에이전트를 배포하고 `AGENT_IDENTITY`를 설정하는 실행 스크립트
 - **[agent.py](file:///usr/local/google/home/kiwonlee/workspace/agents/agent_platform/agent_identity/agent.py)**: `google.adk.agents.llm_agent.Agent` 기반으로 작성된 샘플 에이전트
 - **[pyproject.toml](file:///usr/local/google/home/kiwonlee/workspace/agents/agent_platform/agent_identity/pyproject.toml)**: 패키지 의존성 및 Python 버전 설정 (`>=3.13`)
-
-### 환경 변수 설정 (`.env`)
-상위 디렉토리 또는 프로젝트 내 `.env` 파일에 GCP 프로젝트 ID를 설정해야 합니다.
-```env
-GOOGLE_CLOUD_PROJECT="your-google-cloud-project-id"
-```
 
 ---
 
 ## 2. 주요 개념 및 설정: Agent Identity
 
-[run_agent.py](file:///usr/local/google/home/kiwonlee/workspace/agents/agent_platform/agent_identity/run_agent.py) 스크립트에서는 다음과 같은 핵심 설정을 통해 에이전트 자체 ID를 부여합니다.
+[agent_runtime.py](file:///usr/local/google/home/kiwonlee/workspace/agents/agent_platform/agent_identity/agent_runtime.py) 스크립트에서는 다음과 같은 핵심 설정을 통해 에이전트 자체 ID를 부여합니다.
 
 ### ① `v1beta1` API 버전 사용
 Agent Identity 스펙을 정상적으로 지원하기 위해 `vertexai.Client` 초기화 시 `v1beta1` API 버전을 명시적으로 지정합니다.
@@ -65,7 +59,7 @@ remote_app = client.agent_engines.create(
 
 ### 배포 실행
 ```bash
-uv run run_agent.py
+uv run agent_runtime.py
 ```
 
 ### 출력 예시

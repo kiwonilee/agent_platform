@@ -40,9 +40,11 @@ remote_app = client.agent_engines.create(
         "extra_packages": ["agent.py"],
         "env_vars": {
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+            # Telemetry
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+            # Context-Aware Access 해제 ( Agent Identity 했을 때, 401 UNAUTHENTICATED 오류 나는 경우)
             # https://docs.cloud.google.com/iam/docs/auth-agent-own-identity?hl=ko#opt-out-caa
             # https://docs.cloud.google.com/iam/docs/troubleshoot-auth-manager?hl=ko#401-error
             "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "False",

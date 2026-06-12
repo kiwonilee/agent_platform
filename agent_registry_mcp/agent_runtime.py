@@ -38,19 +38,21 @@ remote_agent = client.agent_engines.create(
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
         "env_vars": {
+            "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+            # SessionService, MemoryService, ArtifactService
             "ADK_SESSION_SERVICE_URI": "agentengine://",
             "ADK_MEMORY_SERVICE_URI": "agentengine://",
             "ADK_ARTIFACT_SERVICE_URI": STAGING_BUCKET,
-            "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",      
+            # Telemetry            
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+            # Context-Aware Access 해제 ( Agent Identity 했을 때, 401 UNAUTHENTICATED 오류 나는 경우)
             # https://docs.cloud.google.com/iam/docs/auth-agent-own-identity?hl=ko#opt-out-caa
             # https://docs.cloud.google.com/iam/docs/troubleshoot-auth-manager?hl=ko#401-error
             "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "False"
         }
     }
-)
 
 print("\n✅ Deployment successful!")
 print(f"Remote Agent Name: {remote_agent.api_resource.name}")
