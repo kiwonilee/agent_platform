@@ -2,91 +2,13 @@
 
 이 프로젝트는 **GCP Agent Registry**에 등록된 **MCP(Model Context Protocol)** 도구 세트를 원격 **Vertex AI Reasoning Engine**과 고유 아이덴티티(`types.IdentityType.AGENT_IDENTITY`) 모드로 연동하여 배포하고 서빙하는 환경을 제공합니다.
 
-> [!NOTE]
-> **성공적인 BigQuery MCP 연동 완료**
-> * 현재 `agent.py` 코드에 `mcl_server_name` 변수 값으로 실제 **BigQuery MCP** 서버 ID(`agentregistry-00000000-0000-0000-3781-81d342859334`)가 정상적으로 지정되어 있습니다.
-> * 코드 상의 에이전트 페르소나 정의(`bq_mcp_agent`) 및 빅데이터 분석 설명과 실제 연동된 MCP 도구셋이 **완벽하게 일치**를 이루어 정상 동작합니다.
-> * 필요한 경우 다른 GCP MCP 서버(예: GCS MCP 등)로도 자유롭게 전환하여 연동할 수 있으며, 방법은 아래 **[🔌 다른 MCP 서버로 확장 및 전환 연동 가이드]** 항목을 참고하십시오.
-
----
-
-## 📂 디렉터리 구조
-
-```
-agent_registry_mcp/
-├── pyproject.toml          # 패키지 및 의존성 명세 (a2a-sdk, google-adk 등 포함)
-├── agent.py                # Agent Registry 기반 MCP 도구 및 에이전트 페르소나 정의
-└── agent_runtime.py        # Vertex AI Agent Runtime 원격 배포 스크립트
-```
-
 ---
 
 ## 🔌 다른 MCP 서버로 확장 및 전환 연동 가이드
 
-Agent Registry에 등록된 다른 MCP 서버로 교체하거나 추가 연동하려면 **MCP 서버 탐색 -> ID 교체 -> 에이전트 성격 수정**의 3단계를 거칩니다.
+Agent Registry에 등록된 다른 MCP 서버로 교체하거나 추가 연동하려면 Agent Registry 에서 MCP 서버 ID 를 확인 후, 다음을 수정 후 Agent Instruction 을 맞게 수정합니다.
 
-### 1단계: Agent Registry에 등록된 MCP 서버 ID 탐색
-프로젝트 환경의 가상환경 내에서 아래 Python 스크립트를 작성하여 기동하면, 현재 사용 가능한 모든 MCP 서버의 고유 ID 리스트와 제공 도구 목록을 조회할 수 있습니다.
-
-```python
-import os
-from google.adk.integrations.agent_registry import AgentRegistry
-
-# Registry 클라이언트 초기화
-registry = AgentRegistry(
-    project_id=os.environ.get("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee"),
-    location=os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
-)
-
-# 등록된 모든 MCP 서버 목록 출력
-servers = registry.list_mcp_servers()
-for s in servers.get('mcpServers', []):
-    short_id = s.get('name').split('/')[-1]
-    print(f"[{s.get('displayName')}] ID: {short_id} - {s.get('description')}")
-```
-
-#### 💡 Agent Registry 주요 내장 MCP 서버 ID 리스트
-자주 사용하는 핵심 MCP 서비스 ID들을 미리 제공합니다. 원하는 도구셋에 맞는 ID를 선택하십시오.
-
-| 대상 GCP 서비스 | Display Name | MCP Server ID (Short ID) | 제공되는 주요 도구 |
-| :--- | :--- | :--- | :--- |
-| **Cloud Storage (GCS)** | `storage.googleapis.com` | `agentregistry-00000000-0000-0000-2039-99a6285dcb61` | `list_buckets`, `list_objects`, `read_text`, `write_text` 등 |
-| **BigQuery (BQ)** | `bigquery.googleapis.com` | `agentregistry-00000000-0000-0000-3781-81d342859334` | `list_datasets`, `list_tables`, `query`, `get_table_schema` 등 |
-| **Cloud SQL** | `cloud-sql` | `agentregistry-00000000-0000-0000-2c61-77e00c7e4574` | 데이터베이스 관리, 인스턴스 조회 및 관리 도구 |
-| **Vertex AI** | `aiplatform.googleapis.com` | `agentregistry-00000000-0000-0000-5df7-d125061c8dc3` | 모델 튜닝, 평가, 배포 엔드포인트 관리 도구 |
-| **Cloud Logging** | `logging.googleapis.com` | `agentregistry-00000000-0000-0000-33ac-b82d3e783371` | 로그 엔트리 조회 및 분석 도구 |
-| **Cloud Run** | `run.googleapis.com` | `agentregistry-00000000-0000-0000-0c34-a2d85a151b0f` | Cloud Run 서비스 및 작업 상태 관리 도구 |
-| **Google Kubernetes Engine** | `container.googleapis.com` | `agentregistry-00000000-0000-0000-861b-11c2ceb07996` | GKE 클러스터 정보 및 워크로드 관리 도구 |
-
-### 2단계: `agent.py` 코드 내 서버 ID 수정
-`agent.py` 파일의 상단부에 정의된 `mcl_server_name` 변수를 원하는 MCP Server의 ID 정보로 교체합니다.
-
-> [!IMPORTANT]
-> **수정 지점 (`agent.py` L39 부근):**
-> ```python
-> # [수정 전: Storage MCP 서버]
-> # mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-2039-99a6285dcb61"
-> 
-> # [수정 후: BigQuery MCP 서버로 변경할 경우]
-> mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-3781-81d342859334"
-> ```
-
-### 3단계: 에이전트 이름 및 페르소나 동기화
-선택한 MCP 도구셋에 걸맞은 성격과 기능을 갖추도록 에이전트 정의부(`root_agent`)의 `name`과 `instruction` 가이드를 알맞게 보정합니다.
-
-```python
-root_agent = Agent(
-    name="bq_mcp_agent",  # 역할에 알맞은 에이전트 명 지정
-    model="gemini-3.5-flash",
-    instruction=(
-        "You are an expert Data Science Agent. "
-        "Your goal is to query enterprise BigQuery datasets, analyze the data... "
-        # 연동한 MCP 도구 활용 방식을 명시하는 System Instruction 구성
-    ),
-    tools=[t for t in [mcp_toolset, PreloadMemoryTool()] if t is not None],
-    after_agent_callback=generate_memories_callback,
-)
-```
+`agent.py` 파일의 `mcl_server_name` 변수를 원하는 MCP Server의 ID 정보로 교체합니다.
 
 ---
 
@@ -111,21 +33,20 @@ except Exception as e:
 
 ---
 
-## 🚀 원격 배포 및 권한 설정 가이드
+## 🚀 배포 및 권한 설정 가이드
 
-### 1. 원격 Reasoning Engine 배포
-의존성 주입이 완료된 Vertex AI 원격 환경으로 에이전트 소스를 배포합니다:
+### 1. Agent Runtime 에 배포
 
 ```bash
 uv run python agent_runtime.py
 ```
-* 배포가 완료되면 콘솔 창에 **Reasoning Engine Resource Name**과 **Effective Identity (Federated ID URI)** 주소가 최종 발급되어 출력됩니다.
+* 배포가 완료되면 콘솔 창에 **Reasoning Engine Resource Name**과 **Agent Identity** 정보가 출력됩니다.
 
-### 2. 고유 Identity에 대한 GCP IAM 권한 할당 (필수)
+### 2. Agent Identity에 대한 GCP IAM 권한 할당 (필수)
 배포 완료 후, 최종 출력된 에이전트의 고유 Identity가 연동된 서비스(Storage, BigQuery, Vertex AI 등)에 직접 인가될 수 있도록 권한을 할당합니다.
 
 > [!WARNING]
-> Federated Identity 바인딩 시에는 `user`나 `serviceAccount` 대신, 반드시 **Workload Identity URI 형식(`principal://`)**을 member 인자로 지정해야 오류가 나지 않습니다.
+> Agent Identity 바인딩 시에는 `user`나 `serviceAccount` 대신, 반드시 **Workload Identity URI 형식(`principal://`)**을 member 인자로 지정해야 오류가 나지 않습니다.
 
 ```bash
 # 1. BigQuery 데이터 조회 및 쿼리 실행 권한 부여 (필수)
@@ -150,27 +71,56 @@ gcloud projects add-iam-policy-binding [PROJECT_ID] \
 
 ---
 
-## 🔍 라이브 서빙 검증
+## 🔍 테스트
 
-원격 배포와 IAM 권한 바인딩이 성료되면 원격 컨테이너 내부의 에이전트는 기동 시점에 MCP 도구셋을 정상 조작할 수 있는 권한을 얻습니다. 아래와 같이 `vertexai` v1beta1 API의 `stream_query` 규격을 이용하여 즉시 서빙 동작을 검증할 수 있습니다:
+### 1단계: 최초 1회 대화 세션 생성
+```bash
+export REASONING_ENGINE_ID="5761272154511376384"
+export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
 
-```python
-import vertexai
+curl -X POST \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:query \
+  -d '{
+    "class_method": "create_session",
+    "input": {
+      "user_id": "test_user"
+    }
+  }'
+```
 
-client = vertexai.Client(
-    project="[PROJECT_ID]",
-    location="us-central1",
-    http_options=dict(api_version="v1beta1")
-)
+**출력 예시 (`output`)**
+```json
+{
+  "output": {
+    "last_update_time": 1781269005.17933,
+    "events": [],
+    "state": {},
+    "app_name": "5761272154511376384",
+    "id": "5918349553886560256",
+    "user_id": "test_user"
+  }
+}
+```
 
-remote_agent = client.agent_engines.get(name="[REASONING_ENGINE_RESOURCE_NAME]")
-response_stream = remote_agent.stream_query(
-    user_id="verifier",
-    session_id="sess_verify",
-    # 현재 설정(BigQuery MCP)에 특화된 동작 확인
-    message="빅쿼리에 등록된 특정 테이블 정보나 데이터를 분석해 줄 수 있니?" 
-)
+발급받은 `"id"` 값을 복사하여 환경 변수로 할당합니다:
+```bash
+export SESSION_ID="5918349553886560256"
+```
 
-for chunk in response_stream:
-    print(chunk, end="", flush=True)
+### 2단계: 첫 번째 질문 던지기
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
+  -d '{
+    "class_method": "async_stream_query",
+    "input": {
+      "user_id": "test_user",
+      "session_id": "${SESSION_ID}",
+      "message": "현재 빅쿼리의 dataset 리스트 알려줘."
+    }
+  }'
 ```
