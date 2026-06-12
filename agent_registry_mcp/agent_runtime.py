@@ -74,5 +74,5 @@ for role in [
     "roles/storage.objectAdmin",
 ]:
     print(f"gcloud projects add-iam-policy-binding {PROJECT_ID} \\")
-    print(f"    --member=\"{effective_identity}\" \\")
+    print(f"    --member=\"principal://{effective_identity}\" \\")
     print(f"    --role=\"{role}\"")
