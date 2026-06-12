@@ -21,27 +21,30 @@ client = vertexai.Client(
     location=LOCATION
 )
 
-# 1. Create Agent Sandbox independently under global path using regional client
-parent_name = f"projects/{PROJECT_ID}/locations/global"
-print(f"Creating Agent Sandbox under {parent_name}...")
+# 1. Create top-level AgentEngine container and a managed sandbox under it
+print("Creating top-level AgentEngine container...")
 try:
+    agent_engine = client.agent_engines.create()
+    container_name = agent_engine.api_resource.name
+    print(f"✅ AgentEngine container created: {container_name}")
+    
+    print(f"Creating Agent Sandbox under {container_name}...")
     operation = client.agent_engines.sandboxes.create(
+        name=container_name,
+        config=types.CreateAgentEngineSandboxConfig(display_name="Agent Sandbox"),
         spec={
             "code_execution_environment": {            
                 "code_language": "LANGUAGE_PYTHON",  # 실행할 프로그래밍 언어   
                 "machine_config": "MACHINE_CONFIG_VCPU4_RAM4GIB", # 컴퓨팅 자원 설정
             }
-        },
-        name=parent_name,
-        config=types.CreateAgentEngineSandboxConfig(display_name="Agent Sandbox")
+        }
     )
     sandbox_name = operation.response.name
     print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
 except Exception as e:
     print(f"\n❌ Error creating Sandbox: {e}")
-    print("\n💡 NOTE: If you are seeing a 404 error, the Sandbox API (sandboxEnvironments) might be restricted in your GCP project.")
-    print("Please use the 'BuiltInCodeExecutor' mode (agent_runtime.py) instead, which does not require GCP sandbox creation.")
     sys.exit(1)
+
 
 # 2. Import Agent
 from agent import data_analyst as agent
