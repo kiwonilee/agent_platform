@@ -1,6 +1,6 @@
-# Agent Registry MCP 원격 연동 가이드 (AGENT_IDENTITY)
+# Agent Registry MCP 연동 (#Agent Identity, #Agent Registry, #MCP, #Agent Runtime)
 
-이 프로젝트는 **GCP Agent Registry**에 등록된 **MCP(Model Context Protocol)** 도구 세트를 원격 **Vertex AI Reasoning Engine**과 고유 아이덴티티(`types.IdentityType.AGENT_IDENTITY`) 모드로 연동하여 배포하고 서빙하는 환경을 제공합니다.
+이 프로젝트는 **GCP Agent Registry**에 등록된 **MCP(Model Context Protocol)** 도구 세트를 원격 **Agent Runtime**과 Agent Identity (`types.IdentityType.AGENT_IDENTITY`) 모드로 연동하여 배포하고 서빙하는 환경을 제공합니다.
 
 ---
 
