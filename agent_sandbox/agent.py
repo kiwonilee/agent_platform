@@ -7,6 +7,21 @@
 import os
 from google.adk.agents.llm_agent import Agent
 from google.adk.code_executors.built_in_code_executor import BuiltInCodeExecutor
+from google.adk.code_executors.agent_engine_sandbox_code_executor import AgentEngineSandboxCodeExecutor
+
+# Determine code executor type (BUILTIN by default, SANDBOX if specified)
+executor_type = os.getenv("CODE_EXECUTOR_TYPE", "BUILTIN").upper()
+
+if executor_type == "SANDBOX":
+    sandbox_resource_name = os.getenv(
+        "SANDBOX_RESOURCE_NAME",
+        "projects/123456789012/locations/us-central1/sandboxes/123456789012"
+    )
+    code_executor = AgentEngineSandboxCodeExecutor(
+        sandbox_resource_name=sandbox_resource_name
+    )
+else:
+    code_executor = BuiltInCodeExecutor()
 
 data_analyst = Agent(
     model="gemini-3.5-flash",
@@ -21,9 +36,10 @@ data_analyst = Agent(
 
     Always ensure your code is complete and executable.
     """,
-    code_executor=BuiltInCodeExecutor(),
+    code_executor=code_executor,
     output_key="analysis_result",  # Store result in session state
 )
+
 
 
 
