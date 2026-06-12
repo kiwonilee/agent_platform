@@ -4,7 +4,6 @@ import google.auth
 from google.auth.transport.requests import Request
 from google.adk.integrations.agent_registry import AgentRegistry
 
-from google.adk.models import Gemini
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
@@ -37,7 +36,7 @@ registry = AgentRegistry(
 # Short formats automatically imply the client's configured project and location
 # Short format: "mcpServers/SERVER_ID"
 # Full format: f"projects/{project_id}/locations/{location}/mcpServers/SERVER_ID"
-mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-2039-99a6285dcb61"
+mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-3781-81d342859334"
 mcp_toolset = registry.get_mcp_toolset(mcp_server_name=mcl_server_name)
 
 # https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#memory-generation-callback

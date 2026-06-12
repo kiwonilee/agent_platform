@@ -6,36 +6,31 @@ import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
 
-
-# Locate script parent directory and load configuration from .env
-script_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(script_dir, ".env")
-load_dotenv(env_path)
-env_config = dotenv_values(env_path)
-
-# Resolve required configuration parameters
-PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
+# Configuration parameters
+PROJECT_ID = "gcp-sandbox-kwlee"
 LOCATION = "us-central1"
 STAGING_BUCKET = "gs://adk-sandbox-bucket"
 
-# Initialize the Agent Platform client with v1beta1 API
+# Initialize the Agent Platform client
 print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION})...")
 client = vertexai.Client(
     project=PROJECT_ID,
-    location=LOCATION,
-    http_options=dict(api_version="v1beta1")
+    location=LOCATION
 )
 
-# 1. Create an Agent Platform instance and Code Execution Sandbox
+# create an Agent Platform instance
 print("Creating Agent Platform instance...")
 agent_engine = client.agent_engines.create()
 agent_engine_name = agent_engine.api_resource.name
 
-print(f"Creating Agent Engine Sandbox under {agent_engine_name}...")
+# create Agent Sandbox
+# https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/code-execution-quickstart#create_a_sandbox
+print(f"Creating Agent Sandbox under {agent_engine_name}...")
 operation = client.agent_engines.sandboxes.create(
     spec={
-        "code_execution_environment": {
-            "code_language": "LANGUAGE_PYTHON"
+        "code_execution_environment": {            
+            "code_language": "LANGUAGE_PYTHON"  # 실행할 프로그래밍 언어   
+            "machine_config" : "MACHINE_CONFIG_VCPU4_RAM4GIB" # 컴퓨팅 자원 설정
         }
     },
     name=agent_engine_name,
@@ -44,23 +39,33 @@ operation = client.agent_engines.sandboxes.create(
 sandbox_name = operation.response.name
 print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
 
-# 2. Deploy Agent to Vertex AI Agent Runtime
+# Use the proper wrapper class for your Agent Framework
 print("Wrapping agent in AdkApp...")
-os.environ["SANDBOX_RESOURCE_NAME"] = sandbox_name
-from agent import data_analyst as agent
-app = AdkApp(agent=agent)
+adk_app = AdkApp(agent=agent)
 
+# Deploy Agent to Vertex AI Agent Runtime
 remote_app = client.agent_engines.create(
-    agent=app,
+    agent=adk_app,
     config={
         "display_name": "Agent Sandbox",
-        "requirements": ["google-adk", "google-cloud-aiplatform[adk,agent_engines]", "cloudpickle", "pydantic"],
+        "requirements": [
+            "google-adk",
+            "google-cloud-aiplatform[adk,agent_engines]",
+            "cloudpickle",
+            "pydantic"],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
         "env_vars": {
-            "SANDBOX_RESOURCE_NAME": sandbox_name,
-            **{k: v for k, v in env_config.items() if k not in ("GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION")},
-        },
+            "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+            # SessionService, MemoryService, ArtifactService
+            "ADK_SESSION_SERVICE_URI": "agentengine://",
+            "ADK_MEMORY_SERVICE_URI": "agentengine://",
+            "ADK_ARTIFACT_SERVICE_URI": STAGING_BUCKET,
+            # Telemetry            
+            "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
+            "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
+            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY"
+        }
     },
 )
 
