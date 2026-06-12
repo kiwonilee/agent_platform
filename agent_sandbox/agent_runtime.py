@@ -29,8 +29,8 @@ print(f"Creating Agent Sandbox under {agent_engine_name}...")
 operation = client.agent_engines.sandboxes.create(
     spec={
         "code_execution_environment": {            
-            "code_language": "LANGUAGE_PYTHON"  # 실행할 프로그래밍 언어   
-            "machine_config" : "MACHINE_CONFIG_VCPU4_RAM4GIB" # 컴퓨팅 자원 설정
+            "code_language": "LANGUAGE_PYTHON",  # 실행할 프로그래밍 언어   
+            "machine_config": "MACHINE_CONFIG_VCPU4_RAM4GIB", # 컴퓨팅 자원 설정
         }
     },
     name=agent_engine_name,
