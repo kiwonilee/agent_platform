@@ -36,14 +36,14 @@ remote_app = client.agent_engines.create(
     config={
         "display_name": "Agent Identity",
         "identity_type": types.IdentityType.AGENT_IDENTITY,
-        "requirements": ["google-cloud-aiplatform[adk,agent_engines]", "cloudpickle", "pydantic"],
+        "requirements": ["google-adk[agent-identity]", "google-cloud-aiplatform[agent_engines]", "cloudpickle", "pydantic"],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
         "env_vars": {
             # https://docs.cloud.google.com/iam/docs/auth-agent-own-identity?hl=ko#opt-out-caa
             # https://docs.cloud.google.com/iam/docs/troubleshoot-auth-manager?hl=ko#401-error
             "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "False",
-            **env_config,
+            **{k: v for k, v in env_config.items() if k not in ("GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION")},
         },
     },
 )

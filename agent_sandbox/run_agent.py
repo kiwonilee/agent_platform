@@ -5,7 +5,6 @@ from dotenv import load_dotenv, dotenv_values
 import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
-from agent import data_analyst as agent
 
 
 # Locate script parent directory and load configuration from .env
@@ -42,13 +41,13 @@ operation = client.agent_engines.sandboxes.create(
     name=agent_engine_name,
     config=types.CreateAgentEngineSandboxConfig(display_name="Agent Sandbox")
 )
-print("Waiting for sandbox creation to complete...")
-sandbox = operation.result()
 sandbox_name = operation.response.name
 print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
 
 # 2. Deploy Agent to Vertex AI Agent Runtime
 print("Wrapping agent in AdkApp...")
+os.environ["SANDBOX_RESOURCE_NAME"] = sandbox_name
+from agent import data_analyst as agent
 app = AdkApp(agent=agent)
 
 remote_app = client.agent_engines.create(
@@ -60,8 +59,7 @@ remote_app = client.agent_engines.create(
         "extra_packages": ["agent.py"],
         "env_vars": {
             "SANDBOX_RESOURCE_NAME": sandbox_name,
-            "GOOGLE_CLOUD_PROJECT": PROJECT_ID,
-            **env_config,
+            **{k: v for k, v in env_config.items() if k not in ("GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION")},
         },
     },
 )

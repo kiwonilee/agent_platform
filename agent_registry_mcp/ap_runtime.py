@@ -10,7 +10,7 @@ if project_parent not in sys.path:
     sys.path.insert(0, project_parent)
 
 # Load configurations from the project's .env file
-load_dotenv(os.path.join(project_parent, "bq_mcp_agent/.env"))
+load_dotenv(os.path.join(project_parent, "agent_registry_mcp/.env"))
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee")
 LOCATION = os.getenv("GCP_RESOURCES_LOCATION", "us-central1")
@@ -27,8 +27,8 @@ client = vertexai.Client(
 )
 
 # Import and wrap the Data Science app via its package path
-from bq_mcp_agent.agent import app
-adk_app = AdkApp(app=app)
+from agent_registry_mcp.agent import root_agent as agent
+adk_app = AdkApp(agent=agent)
 
 # -----------------------------------------------------------------------------
 # Environment variables dynamically loaded from .env
@@ -68,7 +68,7 @@ requirements_list = [
 # service_account_email = f"google-cloud-ops-agent-sa@{PROJECT_ID}.iam.gserviceaccount.com"
 staging_bucket_uri = os.environ.get("ADK_ARTIFACT_SERVICE_URI", "gs://adk-sandbox-bucket")
 
-print(f"Deploying 'bq_mcp_agent' to AgentPlatform in a single step...")
+print(f"Deploying 'agent_registry_mcp' to AgentPlatform in a single step...")
 
 # Create a new resource with your agent deployed to Agent Runtime.
 remote_agent = client.agent_engines.create(
@@ -77,7 +77,7 @@ remote_agent = client.agent_engines.create(
         "display_name": "BigQuery MCP Agent",
         "description": "Expert Data Science Agent for querying enterprise BigQuery datasets, analyzing data, and summarizing findings.",
         "requirements": requirements_list,
-        "extra_packages": ["bq_mcp_agent"],
+        "extra_packages": ["agent_registry_mcp"],
         "env_vars": env_vars,
         "identity_type": vertexai_types.IdentityType.AGENT_IDENTITY,
         # "service_account": service_account_email,

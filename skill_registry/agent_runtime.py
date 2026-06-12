@@ -3,13 +3,13 @@ import sys
 from dotenv import load_dotenv
 from vertexai.agent_engines import AdkApp
 
-project_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-os.chdir(project_parent)
-if project_parent not in sys.path:
-    sys.path.insert(0, project_parent)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
 
 # Load configurations dynamically from .env
-load_dotenv(os.path.join(project_parent, "google_cloud_ops_agent/.env"))
+load_dotenv(os.path.join(script_dir, ".env"))
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee")
 LOCATION = os.getenv("GCP_RESOURCES_LOCATION", "us-central1")  # Agent Engine is deployed regionally
@@ -22,9 +22,9 @@ client = vertexai.Client(
     location=LOCATION
 )
 
-# Import the SRE root agent using the fully qualified package namespace
-from google_cloud_ops_agent.agent import app
-adk_app = AdkApp(app=app)
+# Import the SRE root agent using the local namespace
+from agent import root_agent as app
+adk_app = AdkApp(agent=app)
 
 # -----------------------------------------------------------------------------
 # Environment variables dynamically loaded from .env
@@ -53,7 +53,7 @@ env_vars["ADK_ARTIFACT_SERVICE_URI"] = "gs://adk-sandbox-bucket"
 requirements_list = [
     "google-genai",
     "google-auth",
-    "google-adk",
+    "google-adk[agent-identity,a2a]>=2.1.0",
     "google-cloud-aiplatform[agent_engines]",
     "python-dotenv",
     "pydantic",
@@ -75,7 +75,7 @@ remote_agent = client.agent_engines.create(
         "display_name": "Google Cloud Ops Agent",
         "description": "Managed AI Ops Architect for GCP SRE Operations",
         "requirements": requirements_list,
-        "extra_packages": ["google_cloud_ops_agent"],
+        "extra_packages": ["agent.py", "tools.py", "skills.py"],
         "env_vars": env_vars,
         "service_account": service_account_email,
         "staging_bucket": staging_bucket_uri,
