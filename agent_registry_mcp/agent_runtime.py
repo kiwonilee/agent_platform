@@ -23,13 +23,15 @@ print("Wrapping agent in AdkApp...")
 adk_app = AdkApp(agent=agent)
 
 # Create a new resource with your agent deployed to Agent Runtime.
+service_account_email = f"google-cloud-ops-agent-sa@{PROJECT_ID}.iam.gserviceaccount.com"
+
 remote_agent = client.agent_engines.create(
     agent=adk_app,
     config={
         "display_name": "Agent Registry for MCP",        
-        "identity_type": types.IdentityType.AGENT_IDENTITY,
+        "service_account": service_account_email,
         "requirements": [
-            "google-adk[agent-identity]",
+            "google-adk[agent-identity,a2a]>=2.1.0",
             "google-cloud-aiplatform[agent_engines]",
             "cloudpickle",
             "pydantic",
@@ -50,9 +52,12 @@ remote_agent = client.agent_engines.create(
             # Context-Aware Access 해제 ( Agent Identity 했을 때, 401 UNAUTHENTICATED 오류 나는 경우)
             # https://docs.cloud.google.com/iam/docs/auth-agent-own-identity?hl=ko#opt-out-caa
             # https://docs.cloud.google.com/iam/docs/troubleshoot-auth-manager?hl=ko#401-error
-            "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "False"
+            "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "False",
+            # Force global location for AgentRegistry lookup, otherwise container default us-central1 overrides it
+            "GOOGLE_CLOUD_LOCATION": "global"
         }
     }
+)
 
 print("\n✅ Deployment successful!")
 print(f"Remote Agent Name: {remote_agent.api_resource.name}")
