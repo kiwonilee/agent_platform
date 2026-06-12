@@ -6,13 +6,7 @@
 
 import os
 from google.adk.agents.llm_agent import Agent
-from google.adk.code_executors.agent_engine_sandbox_code_executor import AgentEngineSandboxCodeExecutor
-
-# Read the sandbox resource name from environment variable (with a regex-valid dummy default)
-sandbox_resource_name = os.getenv(
-    "SANDBOX_RESOURCE_NAME",
-    "projects/123456789012/locations/us-central1/sandboxes/123456789012"
-)
+from google.adk.code_executors.built_in_code_executor import BuiltInCodeExecutor
 
 data_analyst = Agent(
     model="gemini-3.5-flash",
@@ -27,10 +21,9 @@ data_analyst = Agent(
 
     Always ensure your code is complete and executable.
     """,
-    code_executor=AgentEngineSandboxCodeExecutor(
-        sandbox_resource_name=sandbox_resource_name
-    ),
+    code_executor=BuiltInCodeExecutor(),
     output_key="analysis_result",  # Store result in session state
 )
+
 
 

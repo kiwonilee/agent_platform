@@ -21,21 +21,8 @@ client = vertexai.Client(
     location=LOCATION
 )
 
-# 1. Create Agent Sandbox independently under global path using regional client
-parent_name = f"projects/{PROJECT_ID}/locations/global"
-print(f"Creating Agent Sandbox under {parent_name}...")
-operation = client.agent_engines.sandboxes.create(
-    spec={
-        "code_execution_environment": {            
-            "code_language": "LANGUAGE_PYTHON",  # 실행할 프로그래밍 언어   
-            "machine_config": "MACHINE_CONFIG_VCPU4_RAM4GIB", # 컴퓨팅 자원 설정
-        }
-    },
-    name=parent_name,
-    config=types.CreateAgentEngineSandboxConfig(display_name="Agent Sandbox")
-)
-sandbox_name = operation.response.name
-print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
+# 1. Skip independent Sandbox creation since we are using BuiltInCodeExecutor
+print("Using BuiltInCodeExecutor (no managed sandbox pre-creation required)...")
 
 # 2. Import Agent
 from agent import data_analyst as agent
@@ -67,8 +54,6 @@ remote_app = client.agent_engines.create(
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
-            # Agent Sandbox
-            "SANDBOX_RESOURCE_NAME": sandbox_name,
         }
     },
 )
