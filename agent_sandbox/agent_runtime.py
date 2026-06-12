@@ -4,7 +4,7 @@ import sys
 import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
-from agent import data_analyst as agent
+from agent import root_agent as agent
 
 # Prevent environment variables from overriding explicit SDK location parameters
 os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
