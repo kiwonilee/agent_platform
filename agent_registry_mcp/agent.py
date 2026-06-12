@@ -1,16 +1,28 @@
 import os
-
+import httpx
+import google.auth
+from google.auth.transport.requests import Request
 from google.adk.integrations.agent_registry import AgentRegistry
-from google.adk.agents import Agent
+
 from google.adk.models import Gemini
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.adk.tools.base_toolset import BaseToolset
 
-from google.auth import default
 from google.genai import types
 from google.adk.apps import App
 
+# https://docs.cloud.google.com/agent-registry/authenticate-toolsets#auth-mcp
+class GoogleAuth(httpx.Auth):
+    def __init__(self):
+        self.creds, _ = google.auth.default()
+    def auth_flow(self, request):
+        if not self.creds.valid:
+            self.creds.refresh(Request())
+        request.headers["Authorization"] = f"Bearer {self.creds.token}"
+        yield request
+
+# Initialize the registry client
 project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee")
 location = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
 
@@ -20,27 +32,12 @@ registry = AgentRegistry(
     location=location,
 )
 
-class LazyMCPToolset(BaseToolset):
-    """MCP Toolset wrapper that defers tool registration API requests until runtime."""
-    def __init__(self, registry, server_resource_name, **kwargs):
-        super().__init__(**kwargs)
-        self._registry = registry
-        self._server_resource_name = server_resource_name
-        self._toolset = None
-
-    def _get_toolset(self):
-        if self._toolset is None:
-            self._toolset = self._registry.get_mcp_toolset(self._server_resource_name)
-        return self._toolset
-
-    async def get_tools(self, readonly_context=None):
-        return await self._get_toolset().get_tools(readonly_context)
-
-# Retrieve an MCP toolset lazily using its resource name in short or full format
-mcp_toolset = LazyMCPToolset(
-    registry,
-    f"projects/gcp-sandbox-kwlee/locations/global/mcpServers/agentregistry-00000000-0000-0000-3781-81d342859334"
-)
+# Retrieve an MCP toolset using its resource name in short or full format
+# Short formats automatically imply the client's configured project and location
+# Short format: "mcpServers/SERVER_ID"
+# Full format: f"projects/{project_id}/locations/{location}/mcpServers/SERVER_ID"
+mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-3781-81d342859334"
+mcp_toolset = registry.get_mcp_toolset(mcp_server_name=mcp_server_name)
 
 # https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#memory-generation-callback
 async def generate_memories_callback(callback_context: CallbackContext):    
@@ -49,10 +46,7 @@ async def generate_memories_callback(callback_context: CallbackContext):
 
 root_agent = Agent(
     name="bq_mcp_agent",
-    model=Gemini(
-            model="gemini-flash-latest",
-            retry_options=types.HttpRetryOptions(attempts=3),
-        ),
+    model="gemini-3.5-flash",
     instruction=(
         "You are an expert Data Science Agent. "
         "Your goal is to query enterprise BigQuery datasets, analyze the data, "
@@ -65,9 +59,4 @@ root_agent = Agent(
     ),
     tools=[mcp_toolset, PreloadMemoryTool()],
     after_agent_callback=generate_memories_callback,
-)
-
-app = App(
-    name="bq_mcp_agent",
-    root_agent=root_agent,
 )
