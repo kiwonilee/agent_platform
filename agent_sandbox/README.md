@@ -62,6 +62,55 @@ uv run python agent_runtime.py
 
 * 배포가 완료되면 콘솔 창에 **Sandbox Resource Name**과 최종 **Remote Agent Name** 정보가 출력됩니다.
 
+### 💡 문제 해결 (Troubleshooting) - Sandbox 404 에러 및 SDK 리전 처리 이슈
+
+배포(`agent_runtime.py`) 과정 중 아래와 같은 `404 Not Found` 에러가 발생하는 경우가 있습니다:
+```
+The requested URL /v1beta1/projects/gcp-sandbox-kwlee/locations/us-central1/sandboxEnvironments was not found on this server.
+```
+
+#### 🔍 원인 분석
+
+1. **Sandbox의 글로벌 관리 구조**:
+   Vertex AI Agent Platform에서 Sandbox 환경(`sandboxEnvironments`)은 개별 리전(예: `us-central1`)이 아닌 **`global`** 상위 경로(`projects/{PROJECT_ID}/locations/global`) 아래에서만 관리 및 생성될 수 있습니다. 리전 경로(`locations/us-central1/...`)로 생성을 시도하면 API 서버에서 `404 Not Found`를 반환합니다.
+
+2. **SDK 버전별 리전 엔드포인트의 미묘한 차이**:
+   - **이전 SDK 버전** (`vertexai 1.79.0` / `google-genai 0.1.1` 등):
+     `location="global"`로 초기화하더라도 내부적으로 `https://us-central1-aiplatform.googleapis.com` 호스트 엔드포인트를 그대로 공유하여 사용했기 때문에, `/locations/global` 경로의 요청이 성공적으로 처리되었습니다.
+   - **최신 SDK 버전** (`vertexai 1.157.0` / `google-genai 2.8.0` 이상):
+     `location="global"`로 초기화 시 SDK가 실제로 `https://global-aiplatform.googleapis.com` 도메인으로 접속을 시도하게 되는데, 이 엔드포인트는 리소스 조회 및 제공 시점에 따라 DNS/Host 차원의 404 또는 인증 에러를 유발할 수 있습니다.
+
+3. **환경 변수 충돌 (`GOOGLE_CLOUD_LOCATION`)**:
+   로컬 환경 파일(`.env`) 또는 시스템 환경 변수에 `GOOGLE_CLOUD_LOCATION="global"`이 등록되어 있는 경우, 파이썬 코드 내에서 명시적으로 `location="us-central1"`로 지정해 준 SDK 클라이언트 옵션이 환경 변수에 의해 강제로 덮어씌워지게 됩니다. 이로 인해 Reasoning Engine 배포용 리전 클라이언트까지 전역(`global`)으로 강제 주입되면서 연쇄적인 404 에러가 발생합니다.
+
+#### 🛠️ 완벽한 해결책 (The Perfect Fix)
+
+`agent_runtime.py`에서는 이러한 문제를 가장 우아하고 견고하게 해결하기 위해 다음과 같은 방식을 채택했습니다:
+
+1. **환경 변수 영향력 제거**:
+   SDK를 초기화하기 전 코드 최상단에서 시스템 환경 변수 `GOOGLE_CLOUD_LOCATION`을 안전하게 제거(Pop)하여 원치 않는 리전 덮어쓰기 충돌을 사전에 차단합니다.
+   ```python
+   # SDK 초기화 전 충돌 방지
+   import os
+   os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
+   ```
+
+2. **단일 리전 클라이언트로 글로벌 경로 명시 호출**:
+   `location="us-central1"`로 초기화한 **안정적인 리전 클라이언트** 하나만 생성합니다. 그 후 Sandbox 생성 API를 호출할 때, 명시적으로 `name="projects/{PROJECT_ID}/locations/global"` 인자를 주입하여 API 서버에 직접 전달합니다.
+   ```python
+   # us-central1 리전 엔드포인트를 사용하는 클라이언트 생성
+   client = vertexai.Client(project=PROJECT_ID, location="us-central1")
+
+   # Sandbox는 global 리소스로 명시적 지정하여 생성
+   parent_name = f"projects/{PROJECT_ID}/locations/global"
+   operation = client.agent_engines.sandboxes.create(
+       spec={...},
+       name=parent_name,
+       config=...
+   )
+   ```
+   이 방식을 사용하면 SDK 버전에 무관하게 항상 `us-central1` 호스트를 안전하게 경유하면서도 `/locations/global` 경로로 샌드박스를 완벽히 생성할 수 있어, 리전 클라이언트와 글로벌 리소스 생성을 동시에 가장 깔끔하게 해결할 수 있습니다.
+
 ---
 
 ## 🔍 테스트

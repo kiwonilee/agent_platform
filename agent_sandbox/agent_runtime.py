@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import os
 import sys
+
+# Prevent environment variables from overriding explicit SDK location parameters
+os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
+
 import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
@@ -17,8 +21,8 @@ client = vertexai.Client(
     location=LOCATION
 )
 
-# 1. Create Agent Sandbox independently
-parent_name = f"projects/{PROJECT_ID}/locations/{LOCATION}"
+# 1. Create Agent Sandbox independently under global path using regional client
+parent_name = f"projects/{PROJECT_ID}/locations/global"
 print(f"Creating Agent Sandbox under {parent_name}...")
 operation = client.agent_engines.sandboxes.create(
     spec={
