@@ -10,7 +10,7 @@ from google.adk.code_executors.built_in_code_executor import BuiltInCodeExecutor
 from google.adk.code_executors.agent_engine_sandbox_code_executor import AgentEngineSandboxCodeExecutor
 
 # Determine code executor type (BUILTIN by default, SANDBOX if specified)
-executor_type = os.getenv("CODE_EXECUTOR_TYPE", "BUILTIN").upper()
+executor_type = os.getenv("CODE_EXECUTOR_TYPE", "SANDBOX").upper()
 
 if executor_type == "SANDBOX":
     sandbox_resource_name = os.getenv(

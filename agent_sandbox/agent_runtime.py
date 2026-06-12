@@ -43,7 +43,7 @@ remote_app = client.agent_engines.create(
         ],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
-        "env_vars": {
+         "env_vars": {
             "GOOGLE_CLOUD_LOCATION": "global",
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
             # SessionService, MemoryService, ArtifactService
@@ -54,6 +54,8 @@ remote_app = client.agent_engines.create(
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+            # Built-In Code Executor Configuration
+            "CODE_EXECUTOR_TYPE": "BUILTIN",
         }
     },
 )
