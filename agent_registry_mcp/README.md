@@ -3,10 +3,10 @@
 이 프로젝트는 **GCP Agent Registry**에 등록된 **MCP(Model Context Protocol)** 도구 세트를 원격 **Vertex AI Reasoning Engine**과 고유 아이덴티티(`types.IdentityType.AGENT_IDENTITY`) 모드로 연동하여 배포하고 서빙하는 환경을 제공합니다.
 
 > [!NOTE]
-> **실제 연동된 MCP 정보 교정**
-> * 현재 `agent.py` 코드에 기본 하드코딩된 `mcl_server_name` 변수 값(`agentregistry-00000000-0000-0000-2039-99a6285dcb61`)은 **BigQuery MCP**가 아닌 **Cloud Storage (GCS) MCP** 서버입니다.
-> * 코드 상의 에이전트 정의(`bq_mcp_agent`)와 페르소나 설명은 빅데이터 분석을 유도하고 있으나, 실제 활성화되는 도구셋은 버킷 및 객체 관리용 GCS 툴셋입니다.
-> * 다른 GCP MCP 서버(예: 실제 BigQuery MCP)로 전환하여 연동하려면 아래 **[🔌 다른 MCP 서버로 확장 및 전환 연동 가이드]** 항목에 따라 코드를 수정하십시오.
+> **성공적인 BigQuery MCP 연동 완료**
+> * 현재 `agent.py` 코드에 `mcl_server_name` 변수 값으로 실제 **BigQuery MCP** 서버 ID(`agentregistry-00000000-0000-0000-3781-81d342859334`)가 정상적으로 지정되어 있습니다.
+> * 코드 상의 에이전트 페르소나 정의(`bq_mcp_agent`) 및 빅데이터 분석 설명과 실제 연동된 MCP 도구셋이 **완벽하게 일치**를 이루어 정상 동작합니다.
+> * 필요한 경우 다른 GCP MCP 서버(예: GCS MCP 등)로도 자유롭게 전환하여 연동할 수 있으며, 방법은 아래 **[🔌 다른 MCP 서버로 확장 및 전환 연동 가이드]** 항목을 참고하십시오.
 
 ---
 
@@ -128,12 +128,7 @@ uv run python agent_runtime.py
 > Federated Identity 바인딩 시에는 `user`나 `serviceAccount` 대신, 반드시 **Workload Identity URI 형식(`principal://`)**을 member 인자로 지정해야 오류가 나지 않습니다.
 
 ```bash
-# 1. Cloud Storage 버킷 및 객체 관리 권한 부여 (현재 사용 중인 Storage MCP용)
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
-    --role="roles/storage.objectAdmin"
-
-# 2. BigQuery 데이터 조회 및 쿼리 실행 권한 부여 (BigQuery MCP로 전환할 경우)
+# 1. BigQuery 데이터 조회 및 쿼리 실행 권한 부여 (필수)
 gcloud projects add-iam-policy-binding [PROJECT_ID] \
     --member="principal://[EFFECTIVE_IDENTITY_URI]" \
     --role="roles/bigquery.dataViewer"
@@ -142,10 +137,15 @@ gcloud projects add-iam-policy-binding [PROJECT_ID] \
     --member="principal://[EFFECTIVE_IDENTITY_URI]" \
     --role="roles/bigquery.jobUser"
 
-# 3. Vertex AI API 호출 권한 부여 (공통)
+# 2. Vertex AI API 호출 권한 부여 (공통)
 gcloud projects add-iam-policy-binding [PROJECT_ID] \
     --member="principal://[EFFECTIVE_IDENTITY_URI]" \
     --role="roles/aiplatform.user"
+
+# 3. Cloud Storage 버킷 및 객체 관리 권한 부여 (추후 GCS MCP로 전환하거나 백업 용도로 쓰일 경우)
+gcloud projects add-iam-policy-binding [PROJECT_ID] \
+    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
+    --role="roles/storage.objectAdmin"
 ```
 
 ---
@@ -167,8 +167,8 @@ remote_agent = client.agent_engines.get(name="[REASONING_ENGINE_RESOURCE_NAME]")
 response_stream = remote_agent.stream_query(
     user_id="verifier",
     session_id="sess_verify",
-    # 현재 설정(Storage MCP)에 특화된 동작 확인
-    message="내 버킷의 오브젝트 목록을 조회해 줄 수 있어?" 
+    # 현재 설정(BigQuery MCP)에 특화된 동작 확인
+    message="빅쿼리에 등록된 특정 테이블 정보나 데이터를 분석해 줄 수 있니?" 
 )
 
 for chunk in response_stream:

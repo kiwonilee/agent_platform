@@ -36,7 +36,7 @@ registry = AgentRegistry(
 # Short formats automatically imply the client's configured project and location
 # Short format: "mcpServers/SERVER_ID"
 # Full format: f"projects/{project_id}/locations/{location}/mcpServers/SERVER_ID"
-mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-2039-99a6285dcb61"
+mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-3781-81d342859334"
 
 # Guard MCP toolset load during remote container bootstrap phase (to avoid chicken-egg IAM Permission Denied loop under AGENT_IDENTITY)
 try:
