@@ -33,7 +33,8 @@ remote_agent = client.agent_engines.create(
         # "service_account": service_account_email,
         "identity_type": types.IdentityType.AGENT_IDENTITY,
         "requirements": [
-            "google-adk[agent-identity]",
+            "google-adk[agent-identity,a2a]>=2.1.0",
+            "a2a-sdk",
             "google-cloud-aiplatform[agent_engines]",
             "cloudpickle",
             "pydantic",
@@ -55,6 +56,8 @@ remote_agent = client.agent_engines.create(
             # https://docs.cloud.google.com/iam/docs/auth-agent-own-identity?hl=ko#opt-out-caa
             # https://docs.cloud.google.com/iam/docs/troubleshoot-auth-manager?hl=ko#401-error
             "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "False",
+            "GOOGLE_CLOUD_LOCATION": "global",
+            "IS_REMOTE_RUNTIME": "TRUE"
         }
     }
 )

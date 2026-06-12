@@ -36,8 +36,14 @@ registry = AgentRegistry(
 # Short formats automatically imply the client's configured project and location
 # Short format: "mcpServers/SERVER_ID"
 # Full format: f"projects/{project_id}/locations/{location}/mcpServers/SERVER_ID"
-mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-3781-81d342859334"
-mcp_toolset = registry.get_mcp_toolset(mcp_server_name=mcl_server_name)
+mcl_server_name = "mcpServers/agentregistry-00000000-0000-0000-2039-99a6285dcb61"
+
+# Guard MCP toolset load during remote container bootstrap phase (to avoid chicken-egg IAM Permission Denied loop under AGENT_IDENTITY)
+try:
+    mcp_toolset = registry.get_mcp_toolset(mcp_server_name=mcl_server_name)
+except Exception as e:
+    print(f"Warning: Bypassing MCP toolset load error (normal under AGENT_IDENTITY before IAM assignment): {e}")
+    mcp_toolset = None
 
 # https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#memory-generation-callback
 async def generate_memories_callback(callback_context: CallbackContext):    
@@ -57,6 +63,6 @@ root_agent = Agent(
         "Remember user preferences like preferred regions, date ranges, "
         "or analysis formats across conversations."
     ),
-    tools=[mcp_toolset, PreloadMemoryTool()],
+    tools=[t for t in [mcp_toolset, PreloadMemoryTool()] if t is not None],
     after_agent_callback=generate_memories_callback,
 )
