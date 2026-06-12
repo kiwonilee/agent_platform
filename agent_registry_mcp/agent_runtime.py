@@ -25,7 +25,7 @@ adk_app = AdkApp(agent=agent)
 
 # # Create a new resource with your agent deployed to Agent Runtime.
 # service_account_email = f"google-cloud-ops-agent-sa@{PROJECT_ID}.iam.gserviceaccount.com"
-
+print("Deploying Agent to Agent Runtime...")
 remote_agent = client.agent_engines.create(
     agent=adk_app,
     config={

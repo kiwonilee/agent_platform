@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import os
 import sys
-
-# Prevent environment variables from overriding explicit SDK location parameters
-os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
-
 import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
+from agent import data_analyst as agent
+
+# Prevent environment variables from overriding explicit SDK location parameters
+os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
 
 # Configuration parameters
 PROJECT_ID = "gcp-sandbox-kwlee"
@@ -21,39 +21,32 @@ client = vertexai.Client(
     location=LOCATION
 )
 
-# 1. Create top-level AgentEngine container and a managed sandbox under it
+# Create top-level AgentEngine container and a managed sandbox under it
 print("Creating top-level AgentEngine container...")
-try:
-    agent_engine = client.agent_engines.create()
-    container_name = agent_engine.api_resource.name
-    print(f"✅ AgentEngine container created: {container_name}")
-    
-    print(f"Creating Agent Sandbox under {container_name}...")
-    operation = client.agent_engines.sandboxes.create(
-        name=container_name,
-        config=types.CreateAgentEngineSandboxConfig(display_name="Agent Sandbox"),
-        spec={
-            "code_execution_environment": {            
-                "code_language": "LANGUAGE_PYTHON",  # Programming language for execution
-                "machine_config": "MACHINE_CONFIG_VCPU4_RAM4GIB", # Resource settings
-            }
+agent_engine = client.agent_engines.create()
+container_name = agent_engine.api_resource.name
+print(f"✅ AgentEngine container created: {container_name}")
+
+print(f"Creating Agent Sandbox under {container_name}...")
+operation = client.agent_engines.sandboxes.create(
+    name=container_name,
+    config=types.CreateAgentEngineSandboxConfig(display_name="Agent Sandbox"),
+    spec={
+        "code_execution_environment": {            
+            "code_language": "LANGUAGE_PYTHON",  # Programming language for execution
+            "machine_config": "MACHINE_CONFIG_VCPU4_RAM4GIB", # Resource settings
         }
-    )
-    sandbox_name = operation.response.name
-    print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
-except Exception as e:
-    print(f"\n❌ Error creating Sandbox: {e}")
-    sys.exit(1)
+    }
+)
+sandbox_name = operation.response.name
+print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
 
-
-# 2. Import Agent
-from agent import data_analyst as agent
-
+# Use the proper wrapper class for your Agent Framework
 print("Wrapping agent in AdkApp...")
 adk_app = AdkApp(agent=agent)
 
-# 3. Deploy Agent to Vertex AI Agent Runtime in a single step
-print("Deploying Agent to Vertex AI Agent Runtime...")
+# Deploy Agent to Vertex AI Agent Runtime in a single step
+print("Deploying Agent to Agent Runtime...")
 remote_app = client.agent_engines.create(
     agent=adk_app,
     config={
