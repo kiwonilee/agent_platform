@@ -42,11 +42,14 @@ cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/agent_sandbox/.env"
 cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/skill_registry/.env"
 echo "✅ .env files distributed successfully!"
 
-# Determine Python command (use 'uv run python' if uv is available, otherwise 'python3')
+# Determine Python command (force Python 3.11 to match Vertex AI Reasoning Engine runtime version)
 if command -v uv &> /dev/null; then
-  PYTHON_CMD="uv run python"
+  PYTHON_CMD="uv run --python 3.11 python"
 else
-  PYTHON_CMD="python3"
+  PYTHON_CMD="python3.11"
+  if ! command -v python3.11 &>/dev/null; then
+    PYTHON_CMD="python3"
+  fi
 fi
 echo "Using Python command: $PYTHON_CMD"
 
@@ -84,8 +87,8 @@ echo "🚀 Deploying 'agent_registry_mcp'..."
 echo "====================================================================="
 (
   cd "$SCRIPT_DIR/agent_registry_mcp"
-  if [ "$PYTHON_CMD" = "uv run python" ]; then
-    uv sync
+  if command -v uv &> /dev/null; then
+    uv sync --python 3.11
   fi
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
@@ -130,8 +133,8 @@ echo "🚀 Deploying 'skill_registry'..."
 echo "====================================================================="
 (
   cd "$SCRIPT_DIR/skill_registry"
-  if [ "$PYTHON_CMD" = "uv run python" ]; then
-    uv sync
+  if command -v uv &> /dev/null; then
+    uv sync --python 3.11
   fi
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
