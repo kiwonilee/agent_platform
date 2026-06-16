@@ -18,7 +18,7 @@ client = vertexai.Client(
 
 # Use the proper wrapper class for your Agent Framework
 print("Wrapping agent in AdkApp...")
-adk_app = AdkApp(agent=app)
+adk_app = AdkApp(agent=agent)
 
 # env_vars["ADK_DISABLE_JSON_SCHEMA_FOR_FUNC_DECL"] = "1"
 # env_vars["ADK_ENABLE_FEATURES"] = "SKILL_TOOLSET"
