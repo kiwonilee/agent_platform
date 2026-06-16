@@ -116,7 +116,7 @@ curl -X POST \
     "class_method": "async_stream_query",
     "input": {
       "user_id": "test_user",
-      "session_id": "${SESSION_ID}",
+      "session_id": "'"${SESSION_ID}"'",
       "message": "현재 빅쿼리의 dataset 리스트 알려줘."
     }
   }'
