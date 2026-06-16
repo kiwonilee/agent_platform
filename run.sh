@@ -8,6 +8,21 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 echo "Using Google Cloud Project ID: $PROJECT_ID"
 
+# 2. Determine unique GCS Staging Bucket name and create it if missing
+CLEAN_PROJECT_ID=$(echo "$PROJECT_ID" | tr '_' '-')
+export STAGING_BUCKET_URI="gs://adk-sandbox-bucket"
+echo "Using GCS Staging Bucket: $STAGING_BUCKET_URI"
+
+if ! gcloud storage buckets describe "$STAGING_BUCKET_URI" --project="$PROJECT_ID" &>/dev/null; then
+  echo "Staging bucket $STAGING_BUCKET_URI does not exist. Creating it in us-central1..."
+  gcloud storage buckets create "$STAGING_BUCKET_URI" \
+    --project="$PROJECT_ID" \
+    --location="us-central1"
+  echo "✅ Staging bucket created successfully!"
+else
+  echo "✅ Staging bucket already exists."
+fi
+
 # Determine Python command (use 'uv run python' if uv is available, otherwise 'python3')
 if command -v uv &> /dev/null; then
   PYTHON_CMD="uv run python"
