@@ -20,7 +20,7 @@ else:
 
 
 root_agent = Agent(
-    model="gemini-3.5-flash",
+    model="gemini-2.5-flash",
     name="agent_sandbox",
     instruction="""You are a helpful coding assistant. When asked to perform calculations or data processing:
 
