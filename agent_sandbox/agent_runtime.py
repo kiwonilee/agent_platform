@@ -8,9 +8,9 @@ from vertexai.agent_engines import AdkApp
 os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
 
 # Configuration parameters
-PROJECT_ID = "gcp-sandbox-kwlee"
-LOCATION = "us-central1"
-STAGING_BUCKET = "gs://adk-sandbox-bucket"
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee")
+LOCATION = os.environ.get("GCP_RESOURCES_LOCATION", "us-central1")
+STAGING_BUCKET = os.environ.get("STAGING_BUCKET_URI", "gs://adk-sandbox-bucket")
 
 # Initialize the Agent Platform client
 print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION})...")

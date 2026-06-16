@@ -8,9 +8,13 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 echo "Using Google Cloud Project ID: $PROJECT_ID"
 
+# Export GOOGLE_CLOUD_PROJECT so Python client libraries know which project to target
+export GOOGLE_CLOUD_PROJECT="$PROJECT_ID"
+export GCP_RESOURCES_LOCATION="us-central1"
+
 # 2. Determine unique GCS Staging Bucket name and create it if missing
 CLEAN_PROJECT_ID=$(echo "$PROJECT_ID" | tr '_' '-')
-export STAGING_BUCKET_URI="gs://adk-sandbox-bucket"
+export STAGING_BUCKET_URI="gs://adk-sandbox-bucket-${CLEAN_PROJECT_ID}"
 echo "Using GCS Staging Bucket: $STAGING_BUCKET_URI"
 
 if ! gcloud storage buckets describe "$STAGING_BUCKET_URI" --project="$PROJECT_ID" &>/dev/null; then
@@ -22,6 +26,18 @@ if ! gcloud storage buckets describe "$STAGING_BUCKET_URI" --project="$PROJECT_I
 else
   echo "✅ Staging bucket already exists."
 fi
+
+# 3. Generate .env file from template and copy to each directory
+echo "Generating .env file from .env.template..."
+sed -e "s|\your-project-id|${PROJECT_ID}|g" \
+    -e "s|\your-gcs-bucket|${STAGING_BUCKET_URI}|g" \
+    "$SCRIPT_DIR/.env.template" > "$SCRIPT_DIR/.env"
+
+echo "Distributing .env files to agent packages..."
+cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/agent_registry_mcp/.env"
+cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/agent_sandbox/.env"
+cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/skill_registry/.env"
+echo "✅ .env files distributed successfully!"
 
 # Determine Python command (use 'uv run python' if uv is available, otherwise 'python3')
 if command -v uv &> /dev/null; then
