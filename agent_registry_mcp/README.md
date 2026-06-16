@@ -49,24 +49,21 @@ uv run python agent_runtime.py
 > Agent Identity 바인딩 시에는 `user`나 `serviceAccount` 대신, 반드시 **Workload Identity URI 형식(`principal://`)**을 member 인자로 지정해야 오류가 나지 않습니다.
 
 ```bash
-# 1. BigQuery 데이터 조회 및 쿼리 실행 권한 부여 (필수)
 gcloud projects add-iam-policy-binding [PROJECT_ID] \
     --member="principal://[EFFECTIVE_IDENTITY_URI]" \
     --role="roles/bigquery.dataViewer"
-
 gcloud projects add-iam-policy-binding [PROJECT_ID] \
     --member="principal://[EFFECTIVE_IDENTITY_URI]" \
     --role="roles/bigquery.jobUser"
-
-# 2. Vertex AI API 호출 권한 부여 (공통)
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
-    --role="roles/aiplatform.user"
-
-# 3. Cloud Storage 버킷 및 객체 관리 권한 부여 (추후 GCS MCP로 전환하거나 백업 용도로 쓰일 경우)
 gcloud projects add-iam-policy-binding [PROJECT_ID] \
     --member="principal://[EFFECTIVE_IDENTITY_URI]" \
     --role="roles/storage.objectAdmin"
+gcloud projects add-iam-policy-binding [PROJECT_ID] \
+    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
+    --role="roles/aiplatform.user"
+gcloud projects add-iam-policy-binding [PROJECT_ID] \
+    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
+    --role="roles/roles/mcp.toolUser"
 ```
 
 ---
