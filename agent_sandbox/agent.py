@@ -21,11 +21,10 @@ else:
 
 root_agent = Agent(
     model="gemini-3.5-flash",
-    name="data_analyst",
-    description="Expert data analyst for sales and business metrics",
+    name="agent_sandbox",
     instruction="""You are a helpful coding assistant. When asked to perform calculations or data processing:
 
-    1. Write clear, well-commented Python code
+    1. Write clear, well-commented Python code inside a markdown code block (starting with ```python and ending with ```)
     2. Include print statements to show intermediate steps
     3. Use the code execution tool to run your code
     4. Explain the results in a user-friendly way
@@ -35,8 +34,3 @@ root_agent = Agent(
     code_executor=code_executor,
     output_key="analysis_result",  # Store result in session state
 )
-
-
-
-
-
