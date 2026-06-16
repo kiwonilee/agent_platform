@@ -1,6 +1,7 @@
 import os
 import sys
 import vertexai
+from vertexai import types
 from vertexai.agent_engines import AdkApp
 from agent import root_agent as agent
 
