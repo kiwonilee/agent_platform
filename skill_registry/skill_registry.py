@@ -1,120 +1,103 @@
 #!/usr/bin/env python3
-"""
-Enterprise Skill Registry Administration CLI Tool
-Provides focused subcommands: create, list, get, delete, retrieve, and import
-for Vertex AI Agent Platform Skill Registry management.
+"""Enterprise Skill Registry Administration CLI Tool.
+
+Provides subcommands: list, create, get, delete, retrieve, and import for
+managing Vertex AI Agent Platform Skill Registry.
 """
 
 import argparse
 import os
+import re
+import shutil
 import subprocess
 import tempfile
-import shutil
 from datetime import datetime
 import vertexai
 
+# -----------------------------------------------------------------------------
+# Core Management Subcommand Functions
+# -----------------------------------------------------------------------------
 
 def list_skills(client):
   """Lists all registered skills in the project region."""
-  print("\n====================================================================================")
-  print("                   ACTIVE AGENT PLATFORM SKILLS REGISTRY LIST")
-  print("====================================================================================")
-  pager = client.skills.list()
+  print(f"\n--- Active Skills in Registry ---")
   count = 0
-  for skill in pager:
-    print(f"  * Display Name: {skill.display_name}")
-    print(f"    Resource URI: {skill.name}")
-    print(f"    Description : {skill.description}")
-    print("------------------------------------------------------------------------------------")
+  for skill in client.skills.list():
+    print(f"* Display Name: {skill.display_name}")
+    print(f"  Resource URI: {skill.name}")
+    print(f"  Description : {skill.description}")
+    print("-" * 50)
     count += 1
-  print(f"Total registered skills found in region: {count}")
-  print("====================================================================================\n")
+  print(f"Total registered skills found: {count}\n")
 
 
 def create_skill(client, display_name: str, description: str, local_path: str, skill_id: str = None):
   """Registers/Creates a new skill in the registry."""
   if not skill_id:
     # Auto-generate a slug-friendly skill ID
-    clean_slug = display_name.lower().replace(" ", "-")
-    clean_slug = "".join(c for c in clean_slug if c.isalnum() or c == "-")
-    # Truncate to 45 chars max to ensure total length with timestamp is well under 63 chars limit
-    clean_slug = clean_slug[:45].rstrip("-")
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    skill_id = f"{clean_slug}-{timestamp}"
+    clean_slug = "".join(c for c in display_name.lower().replace(" ", "-") if c.isalnum() or c == "-")
+    skill_id = f"{clean_slug[:45].rstrip('-')}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
-  print(f"Creating skill '{display_name}' from local path '{local_path}'...")
+  print(f"Creating skill '{display_name}' ({skill_id}) from local path '{local_path}'...")
   created_skill = client.skills.create(
+      skill_id=skill_id,
       display_name=display_name,
       description=description,
-      config={
-          "local_path": local_path,
-          "skill_id": skill_id
-      }
+      config={"local_path": local_path}
   )
-  print(f"\nSUCCESS: Skill registered successfully!")
-  print(f"Resource Name: {created_skill.name}")
-  print(f"Display Name : {created_skill.display_name}")
-  print(f"Description  : {created_skill.description}")
+  print(f"SUCCESS: Skill registered. Resource Name: {created_skill.name}\n")
   return created_skill
 
 
 def get_skill(client, skill_name_or_id: str, project_id: str, location: str):
   """Gets a single registered skill by its name/ID."""
-  if not skill_name_or_id.startswith("projects/"):
-    full_resource_name = f"projects/{project_id}/locations/{location}/skills/{skill_name_or_id}"
-  else:
-    full_resource_name = skill_name_or_id
-
-  print(f"Fetching skill details for: {full_resource_name}...")
+  full_resource_name = (
+      skill_name_or_id
+      if skill_name_or_id.startswith("projects/")
+      else f"projects/{project_id}/locations/{location}/skills/{skill_name_or_id}"
+  )
+  print(f"Fetching skill: {full_resource_name}...")
   skill = client.skills.get(name=full_resource_name)
-  print("\n====================================================================================")
-  print("                            SKILL SPEC DETAILS")
-  print("====================================================================================")
-  print(f"  * Display Name: {skill.display_name}")
-  print(f"    Resource URI: {skill.name}")
-  print(f"    Description : {skill.description}")
-  print("====================================================================================\n")
+  print(f"\n--- Skill Details ---")
+  print(f"  Display Name: {skill.display_name}")
+  print(f"  Resource URI: {skill.name}")
+  print(f"  Description : {skill.description}\n")
   return skill
 
 
 def delete_skill(client, skill_name_or_id: str, project_id: str, location: str):
   """Deletes a registered skill by its name/ID."""
-  if not skill_name_or_id.startswith("projects/"):
-    full_resource_name = f"projects/{project_id}/locations/{location}/skills/{skill_name_or_id}"
-  else:
-    full_resource_name = skill_name_or_id
-
+  full_resource_name = (
+      skill_name_or_id
+      if skill_name_or_id.startswith("projects/")
+      else f"projects/{project_id}/locations/{location}/skills/{skill_name_or_id}"
+  )
   print(f"Deleting skill: {full_resource_name}...")
   client.skills.delete(name=full_resource_name)
-  print(f"SUCCESS: Successfully deleted skill '{skill_name_or_id}'")
+  print(f"SUCCESS: Deleted skill '{skill_name_or_id}'\n")
 
 
 def retrieve_skills(client, query: str, top_k: int = 2):
   """Performs semantic RAG search on the registered skills."""
-  print(f"Querying skills registry for playbooks matching: '{query}' (top_k={top_k})...")
-  response = client.skills.retrieve(
-      query=query,
-      config={"top_k": top_k}
-  )
-  print("\n====================================================================================")
-  print(f"                      SEMANTIC RETRIEVAL RESULTS FOR: '{query}'")
-  print("====================================================================================")
+  print(f"Querying skills matching: '{query}' (top_k={top_k})...")
+  response = client.skills.retrieve(query=query, config={"top_k": top_k})
+  print(f"\n--- Semantic Retrieval Results for: '{query}' ---")
   print(f"Found {len(response.retrieved_skills)} matching skills.")
   for i, retrieved in enumerate(response.retrieved_skills):
     print(f"  [{i+1}] Skill Name : {retrieved.skill_name}")
     print(f"      Description: {retrieved.description}")
-    print("------------------------------------------------------------------------------------")
-  print("====================================================================================\n")
+    print("-" * 50)
+  print()
   return response
 
 
 # -----------------------------------------------------------------------------
 # GitHub Skills Import Helpers
 # -----------------------------------------------------------------------------
+
 def download_github_repo(url: str, dest_dir: str):
   """Clones a public GitHub repository into the target destination folder."""
-  print(f"\nCloning GitHub repository '{url}' into temporary folder '{dest_dir}'...")
-  # Use git clone with depth=1 for maximum speed and efficiency
+  print(f"Cloning GitHub repo '{url}'...")
   subprocess.run(["git", "clone", "--depth=1", url, dest_dir], check=True, capture_output=True)
 
 
@@ -125,39 +108,20 @@ def parse_skill_md(filepath: str, default_name: str):
 
   if os.path.exists(filepath):
     with open(filepath, "r", encoding="utf-8") as f:
-      lines = f.readlines()
+      content = f.read().strip()
 
-    # Extract the H1 markdown header as the display name
-    for line in lines:
-      if line.strip().startswith("# "):
-        display_name = line.replace("# ", "").strip()
-        break
+    # Extract first H1 header
+    h1_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
+    if h1_match:
+      display_name = h1_match.group(1).strip()
 
-    # Parse non-empty paragraph lines for description
-    paragraphs = []
-    current_para = []
-    for line in lines:
-      stripped = line.strip()
-      if stripped.startswith("#"):
-        if current_para:
-          paragraphs.append(" ".join(current_para))
-          current_para = []
-      elif stripped:
-        current_para.append(stripped)
-      else:
-        if current_para:
-          paragraphs.append(" ".join(current_para))
-          current_para = []
-    if current_para:
-      paragraphs.append(" ".join(current_para))
-
-    # Set description to the first substantial paragraph (excluding headers/titles)
+    # Extract first paragraph (excluding headers)
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", content) if p.strip()]
     for p in paragraphs:
-      if not p.startswith(display_name) and len(p) > 15:
-        description = p
+      if not p.startswith("#") and len(p) > 15:
+        description = re.sub(r"\s+", " ", p)
         break
 
-  # Limit description string size to fit registry constraints nicely
   if len(description) > 300:
     description = description[:297] + "..."
   return display_name, description
@@ -168,100 +132,72 @@ def import_skills_from_github(client, repo_url: str, sub_path: str = None):
   output_dir = tempfile.mkdtemp()
   try:
     download_github_repo(repo_url, output_dir)
+    search_path = os.path.join(output_dir, sub_path.lstrip("/")) if sub_path else output_dir
 
-    search_path = output_dir
-    if sub_path:
-      search_path = os.path.join(output_dir, sub_path.lstrip("/"))
-
-    print(f"Scanning for SRE playbooks under path: '{search_path}'...")
+    print(f"Scanning for SRE playbooks under: '{search_path}'...")
     skills_found = []
 
-    # Walk recursively to detect all playbooks containing SKILL.md
     for root, _, files in os.walk(search_path):
-      # Skip git folder configurations
       if ".git" in root:
         continue
       if "SKILL.md" in files:
-        skill_md_path = os.path.join(root, "SKILL.md")
-        folder_name = os.path.basename(root)
-        
-        display_name, description = parse_skill_md(skill_md_path, folder_name)
-        skills_found.append({
-            "display_name": display_name,
-            "description": description,
-            "local_path": root
-        })
+        display_name, description = parse_skill_md(os.path.join(root, "SKILL.md"), os.path.basename(root))
+        skills_found.append({"display_name": display_name, "description": description, "local_path": root})
 
     if not skills_found:
-      print(f"\nNo playbook directories containing 'SKILL.md' were found in path '{repo_url}/{sub_path or ''}'!")
+      print(f"No playbook directories containing 'SKILL.md' found.")
       return
 
-    print(f"\n====================================================================================")
-    print(f"               DETECTED {len(skills_found)} PLAYBOOK SKILLS FOR IMPORT")
-    print("====================================================================================")
+    print(f"\n--- Detected {len(skills_found)} Playbooks for Import ---")
     for s in skills_found:
-      print(f"  * Display Name: {s['display_name']}")
-      print(f"    Description : {s['description']}")
-      print(f"    Local Path  : {s['local_path']}")
-      print("------------------------------------------------------------------------------------")
-    print("====================================================================================\n")
+      print(f"* Display Name: {s['display_name']}")
+      print(f"  Description : {s['description']}")
+      print(f"  Local Path  : {s['local_path']}")
+      print("-" * 50)
 
-    # Eagerly register each playbook skill
     for s in skills_found:
       create_skill(client, s["display_name"], s["description"], s["local_path"])
 
-    print(f"\nSUCCESS: All {len(skills_found)} SRE playbooks imported and registered successfully!")
+    print(f"SUCCESS: All {len(skills_found)} SRE playbooks imported successfully!\n")
 
   finally:
-    print(f"Cleaning up temporary clone folder '{output_dir}'...")
+    print(f"Cleaning up temporary folder '{output_dir}'...")
     shutil.rmtree(output_dir, ignore_errors=True)
 
 
+# -----------------------------------------------------------------------------
+# Main CLI Entry Point
+# -----------------------------------------------------------------------------
+
 def main():
-  parser = argparse.ArgumentParser(
-      description="Vertex AI Agent Platform Skill Registry Management CLI Tool",
-      formatter_class=argparse.RawDescriptionHelpFormatter
-  )
-  parser.add_argument(
-      "--project-id",
-      default=os.environ.get("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee"),
-      help="Google Cloud Project ID"
-  )
-  parser.add_argument(
-      "--location",
-      default=os.environ.get("GCP_RESOURCES_LOCATION", "us-central1"),
-      help="Vertex AI location/region"
-  )
+  parser = argparse.ArgumentParser(description="Vertex AI Agent Platform Skill Registry CLI")
+  parser.add_argument("--project-id", default=os.environ.get("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee"))
+  parser.add_argument("--location", default=os.environ.get("GCP_RESOURCES_LOCATION", "us-central1"))
 
-  subparsers = parser.add_subparsers(dest="command", required=True, help="Skill Registry Commands")
+  subparsers = parser.add_subparsers(dest="command", required=True)
 
-  # 1. 'list' subcommand
-  subparsers.add_parser("list", help="List all registered skills in the project region")
+  # Subcommands
+  subparsers.add_parser("list", help="List registered skills")
 
-  # 2. 'create' subcommand
-  create_parser = subparsers.add_parser("create", help="Register/Create a new skill from local playbook path")
-  create_parser.add_argument("--display-name", required=True, help="Display name for the skill")
-  create_parser.add_argument("--description", required=True, help="Detailed operational description for the skill")
-  create_parser.add_argument("--local-path", required=True, help="Local folder directory containing SKILL.md / playbooks")
-  create_parser.add_argument("--skill-id", default=None, help="Optional custom unique slug ID for the skill")
+  create_parser = subparsers.add_parser("create", help="Register a new skill from local playbook path")
+  create_parser.add_argument("--display-name", required=True)
+  create_parser.add_argument("--description", required=True)
+  create_parser.add_argument("--local-path", required=True)
+  create_parser.add_argument("--skill-id", default=None)
 
-  # 3. 'get' subcommand
   get_parser = subparsers.add_parser("get", help="Retrieve detailed specs of a registered skill")
-  get_parser.add_argument("--skill-name", required=True, help="The resource name or raw ID of the skill to fetch")
+  get_parser.add_argument("--skill-name", required=True)
 
-  # 4. 'delete' subcommand
-  delete_parser = subparsers.add_parser("delete", help="Delete a registered skill from the registry")
-  delete_parser.add_argument("--skill-name", required=True, help="The resource name or raw ID of the skill to delete")
+  delete_parser = subparsers.add_parser("delete", help="Delete a registered skill")
+  delete_parser.add_argument("--skill-name", required=True)
 
-  # 5. 'retrieve' subcommand
-  retrieve_parser = subparsers.add_parser("retrieve", help="Perform RAG semantic search query on registered playbooks")
-  retrieve_parser.add_argument("--query", required=True, help="The query string (e.g., 'GKE node upgrade')")
-  retrieve_parser.add_argument("--top-k", type=int, default=2, help="Maximum number of semantic matches to fetch")
+  retrieve_parser = subparsers.add_parser("retrieve", help="Perform RAG semantic search query")
+  retrieve_parser.add_argument("--query", required=True)
+  retrieve_parser.add_argument("--top-k", type=int, default=2)
 
-  # 6. 'import' subcommand (New GitHub Import integration!)
-  import_parser = subparsers.add_parser("import", help="Download and register SRE playbooks from a public GitHub repository")
-  import_parser.add_argument("--github-url", required=True, help="The public GitHub HTTPS clone URL (e.g., https://github.com/user/repo.git)")
-  import_parser.add_argument("--sub-path", default=None, help="Optional subdirectory path inside the repository to restrict the playbook scan")
+  import_parser = subparsers.add_parser("import", help="Import SRE playbooks from a public GitHub repository")
+  import_parser.add_argument("--github-url", required=True)
+  import_parser.add_argument("--sub-path", default=None)
 
   args = parser.parse_args()
 
@@ -269,7 +205,6 @@ def main():
   vertexai.init(project=args.project_id, location=args.location)
   client = vertexai.Client(project=args.project_id, location=args.location)
 
-  # Subcommand multiplexer
   try:
     if args.command == "list":
       list_skills(client)

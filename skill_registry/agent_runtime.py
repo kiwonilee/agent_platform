@@ -1,87 +1,56 @@
 import os
 import sys
-from dotenv import load_dotenv
+import vertexai
 from vertexai.agent_engines import AdkApp
+from agent import root_agent as agent
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(script_dir)
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-
-# Load configurations dynamically from .env
-load_dotenv(os.path.join(script_dir, ".env"))
-
-PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee")
-LOCATION = os.getenv("GCP_RESOURCES_LOCATION", "us-central1")  # Agent Engine is deployed regionally
+# Configuration parameters
+PROJECT_ID = "gcp-sandbox-kwlee"
+LOCATION = "us-central1"
+STAGING_BUCKET = "gs://adk-sandbox-bucket"
 
 # CLIENT & AGENT PLATFORM INITIALIZATION
-import vertexai
-
+print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION})...")
 client = vertexai.Client(
     project=PROJECT_ID, 
     location=LOCATION
 )
 
-# Import the SRE root agent using the local namespace
-from agent import root_agent as app
+# Use the proper wrapper class for your Agent Framework
+print("Wrapping agent in AdkApp...")
 adk_app = AdkApp(agent=app)
 
-# -----------------------------------------------------------------------------
-# Environment variables dynamically loaded from .env
-# -----------------------------------------------------------------------------
-sre_env_keys = [
-    "GOOGLE_GENAI_USE_VERTEXAI",
-    "GCP_RESOURCES_LOCATION",
-    "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY",
-    "OTEL_SEMCONV_STABILITY_OPT_IN",
-    "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT",
-]
-env_vars = {key: os.environ[key] for key in sre_env_keys if key in os.environ}
-
-# -----------------------------------------------------------------------------
-# Explicitly append Production Runtime URIs to the env_vars payload dictionary
-# -----------------------------------------------------------------------------
-env_vars["GOOGLE_CLOUD_LOCATION"] = "global"
-
-env_vars["ADK_DISABLE_JSON_SCHEMA_FOR_FUNC_DECL"] = "1"
-env_vars["ADK_ENABLE_FEATURES"] = "SKILL_TOOLSET"
-
-env_vars["ADK_SESSION_SERVICE_URI"] = "agentengine://"
-env_vars["ADK_MEMORY_SERVICE_URI"] = "agentengine://"
-env_vars["ADK_ARTIFACT_SERVICE_URI"] = "gs://adk-sandbox-bucket"
-
-requirements_list = [
-    "google-genai",
-    "google-auth",
-    "google-adk[agent-identity,a2a]>=2.1.0",
-    "google-cloud-aiplatform[agent_engines]",
-    "python-dotenv",
-    "pydantic",
-    "cloudpickle",
-    "mcp>=1.27.1",
-    "pyyaml>=6.0.3",
-]
-
-# Construct the custom service account email and staging bucket dynamically
-service_account_email = f"google-cloud-ops-agent-sa@{PROJECT_ID}.iam.gserviceaccount.com"
-staging_bucket_uri = os.environ.get("ADK_ARTIFACT_SERVICE_URI", f"gs://adk-sandbox-bucket")
-
-print(f"Deploying 'google_cloud_ops_agent' to AgentPlatform...")
+# env_vars["ADK_DISABLE_JSON_SCHEMA_FOR_FUNC_DECL"] = "1"
+# env_vars["ADK_ENABLE_FEATURES"] = "SKILL_TOOLSET"
 
 # Create a new resource with your agent deployed to Agent Runtime.
 remote_agent = client.agent_engines.create(
     agent=adk_app,
     config={
-        "display_name": "Google Cloud Ops Agent",
-        "description": "Managed AI Ops Architect for GCP SRE Operations",
-        "requirements": requirements_list,
-        "extra_packages": ["agent.py", "tools.py", "skills.py"],
-        "env_vars": env_vars,
-        "service_account": service_account_email,
-        "staging_bucket": staging_bucket_uri,
+        "display_name": "Agent Skills",
+        "requirements": [
+            "google-genai",
+            "google-auth",
+            "google-adk[agent-identity,a2a]>=2.1.0",
+            "google-cloud-aiplatform[agent_engines]",
+            "python-dotenv",
+            "pydantic",
+            "cloudpickle",
+            "mcp>=1.27.1",
+            "pyyaml>=6.0.3",
+        ],
+        "staging_bucket": STAGING_BUCKET,
+        "extra_packages": ["agent.py"],
+        "env_vars": {
+            "GOOGLE_CLOUD_LOCATION": "global",
+            "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+            # Telemetry            
+            "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
+            "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
+            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+        }
     }
 )
 
-print(f"\nSUCCESS: Agent deployed successfully to Agent Runtime!")
-print(f"AgentPlatform Resource Name: {remote_agent.api_resource.name}")
-print(f"To run chat sessions on this deployed agent, use the resource URI: {remote_agent.api_resource.name}")
+print("\n✅ Deployment successful!")
+print(f"Remote Agent Name: {remote_app.api_resource.name}")

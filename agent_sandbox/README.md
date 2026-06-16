@@ -30,6 +30,9 @@ Gemini 모델 자체의 내장 기능을 사용하는 **`BuiltInCodeExecutor`** 
      2. 생성된 부모 컨테이너 아래에 독립적인 관리형 Sandbox(`sandboxEnvironments`)를 동적으로 구성합니다.
      3. 생성된 Sandbox 리소스 명을 에이전트 배포 시 `SANDBOX_RESOURCE_NAME` 환경 변수로 주입합니다.
 
+   > [!NOTE]
+   > 별도의 Service Account나 Agent Identity(예: `types.IdentityType.AGENT_IDENTITY`)를 에이전트 설정(`config`)에 지정하지 않는 경우, 에이전트 구동용 기본 신원으로서 `sa://service-PROJECT_NUMBER@gcp-sa-aiplatform-re.iam.gserviceaccount.com` 형식의 서비스 어카운트가 자동으로 할당 및 사용됩니다. (이 정보는 API 응답의 `effective_identity` 값으로 확인할 수 있습니다.)
+
 2. **배포 성공 시 로그 예시:**
    ```
    Initializing Vertex AI Client (Project: gcp-sandbox-kwlee, Location: us-central1)...
@@ -138,3 +141,59 @@ print(f"배포 완료! 원격 에이전트 ID: {remote_app.api_resource.name}")
 | **GCS 인프라 필요성** | 필수 (아티팩트 및 임시 세션 파일 영구 기록) | 불필요 (순수 텍스트 컨텍스트 기반 연산) |
 | **컴퓨팅 하드웨어 변경**| vCPU, RAM 등 기호에 부합하는 리소스 세부 튜닝 가능 | 기본 사양으로 고정 제공 |
 | **추론 속도** | 샌드박스 부팅 및 입출력 세션 제어로 수 초 추가 지연 발생 가능 | 모델의 자체 확장을 타므로 지연 시간 최소화 |
+
+---
+
+## 🔍 테스트
+
+### 1단계: 최초 1회 대화 세션 생성
+```bash
+export REASONING_ENGINE_ID="[배포 완료 후 발급받은 REASONING_ENGINE_ID]"
+export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
+
+curl -X POST \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:query \
+  -d '{
+    "class_method": "create_session",
+    "input": {
+      "user_id": "test_user"
+    }
+  }'
+```
+
+**출력 예시 (`output`)**
+```json
+{
+  "output": {
+    "last_update_time": 1781269005.17933,
+    "events": [],
+    "state": {},
+    "app_name": "projects/...",
+    "id": "5918349553886560256",
+    "user_id": "test_user"
+  }
+}
+```
+
+발급받은 `"id"` 값을 복사하여 환경 변수로 할당합니다:
+```bash
+export SESSION_ID="5918349553886560256"
+```
+
+### 2단계: 첫 번째 질문 던지기 (샌드박스 내 코드 실행 기능 테스트)
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
+  -d '{
+    "class_method": "async_stream_query",
+    "input": {
+      "user_id": "test_user",
+      "session_id": "'"${SESSION_ID}"'",
+      "message": "1부터 100까지의 숫자 중 소수(Prime Number)의 개수를 구하는 파이썬 코드를 작성하고 실행 결과를 알려줘."
+    }
+  }'
+```

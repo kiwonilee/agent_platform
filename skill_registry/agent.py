@@ -1,68 +1,47 @@
 import os
-import logging
-from typing import Any, Dict
 from dotenv import load_dotenv
-from google.adk.agents.callback_context import CallbackContext
 from google.adk.agents.llm_agent import Agent
-from google.adk.apps.app import App
-from google.adk.tools.preload_memory_tool import PreloadMemoryTool
-
-# Standard, clean package-level imports enabled by the unified workspace layout
-try:
-    from google_cloud_ops_agent import tools
-    from google_cloud_ops_agent.skills import search_skills_tool
-except ImportError:
-    import tools
-    from skills import search_skills_tool
+import vertexai
 
 load_dotenv()
-logger = logging.getLogger("google_adk.gcp_ops_agent.agent")
 
-# -----------------------------------------------------------------------------
-# Declarative SOT Model Resource URI (Explicitly force global in Python to bypass us-central1 limits)
-# -----------------------------------------------------------------------------
-PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee")
-GEMINI_MODEL = "gemini-3.5-flash"
-
-SYSTEM_INSTRUCTION = """# SYSTEM INSTRUCTION: Google Cloud AI Ops Orchestrator
-
-## 1. Role and Objective
-You are the Google Cloud Ops Architect. You will directly utilize the core GCP service tools assigned to you to monitor, analyze, and troubleshoot cloud resources based strictly on the user's intent.
-
-## 2. Strict Tool Call Constraints (Minimal Execution Principle)
-- **Strict Intent Isolation**: Analyze the user's prompt first and identify the exact target service. You MUST only call tools belonging to that target service (e.g., if the question is about logs, only use `logging_` tools. Do not call GKE or cost helper APIs).
-- **Zero Exploratory Over-Investigation**: Do NOT call exploratory or redundant tools. For example, if the user asks about "GKE node upgrades" in a general context or asks for a skill, only call the `search_skills` tool. Do NOT call GKE cluster operations APIs (like `gke__list_operations`) or Gemini Cloud Assist APIs (like `gca__ask_cloud_assist`) unless the user explicitly asks you to inspect their live active cluster resource.
-- **Single-Step Focus**: Solve the user's request using the minimum number of tool calls possible (prefer a single tool call). Do not build speculative execution chains.
-
-## 3. GCP Resource Parameter Formatting Rules (CRITICAL)
-- **Parent Parameter Rule**: When calling GCP MCP tools that require a `parent` argument (such as GKE, Cloud Run, Logging, etc.), you MUST format the `parent` argument strictly as `projects/<project_id>/locations/<location_id>` (or `projects/<project_id>` where applicable) as specified in the tool's description.
-- **No Hallucinated Arguments**: Do NOT split `parent` into separate `project` or `region` arguments unless the tool explicitly declares those parameters. For example, `run__list_services` expects `parent` (e.g., `projects/gcp-sandbox-kwlee/locations/us-central1`). You MUST pass exactly this formatted string as the `parent` parameter.
-
-## 4. Safety & HITL Rules
-- For any actions that modify, delete, or create infrastructure settings, you MUST formulate a detailed Execution Plan and explicitly wait for user approval.
-
-## 5. Communication Rules
-- **Korean Response Mandatory**: All explanations, analysis reports, and next-step recommendations must be written in professional and polite Korean.
-"""
-
-# https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#memory-generation-callback
-async def generate_memories_callback(callback_context: CallbackContext):    
-    await callback_context.add_session_to_memory()
-    return None
+def search_skills_tool(query: str) -> dict:
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee")
+    location = os.environ.get("GCP_RESOURCES_LOCATION", "us-central1")
+    
+    # Initialize Vertex AI client
+    client = vertexai.Client(project=project_id, location=location)
+    
+    try:
+        response = client.skills.retrieve(
+            query=query,
+            config={"top_k": 5}
+        )
+        results = []
+        for s in response.retrieved_skills:
+            results.append({
+                "skill_name": s.skill_name,
+                "description": s.description,
+            })
+        return {"status": "success", "query": query, "skills": results}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
-# -----------------------------------------------------------------------------
-# 2. Agent Initialization
-# -----------------------------------------------------------------------------
 root_agent = Agent(
-    name='google_cloud_ops_agent',
-    model=GEMINI_MODEL,
-    instruction=SYSTEM_INSTRUCTION,
-    description='AI Ops Agent for GCP Environment Management',
-    after_agent_callback=generate_memories_callback,
+    name='agent_by_skills',
+    model="gemini-3.5-flash",
+    instruction="""# SYSTEM INSTRUCTION: Skill-Based Task Executor (스킬 기반 작업 실행기)
+
+당신은 사용자의 요청을 해결하기 위해 등록된 스킬을 탐색하고 실행하는 에이전트입니다.
+
+## 핵심 규칙
+1. **스킬 탐색 우선**: 사용자가 요청을 입력하면, 가장 먼저 `search_skills_tool` 도구를 호출하여 레지스트리에서 가장 적합한 스킬을 검색하십시오.
+2. **스킬 기반 수행**: 검색된 스킬 중 요청과 매칭되는 적절한 스킬이 존재한다면, 해당 스킬의 내용을 참고하여 사용자의 요청을 처리하십시오.
+3. **스킬이 없는 경우 처리 (종료)**: 만약 검색 결과 요청을 처리할 수 있는 적합한 스킬이 레지스트리에 존재하지 않는 경우, 추가적인 작업이나 추측을 하지 말고 즉시 "요청하신 작업을 수행할 수 있는 적절한 스킬(플레이북)을 스킬 레지스트리에서 찾을 수 없습니다." 라고 한국어로 응답하고 대화를 바로 종료하십시오.
+4. **소통 규칙**: 사용자와의 모든 대화와 최종 응답은 친절하고 정중한 한국어로 작성하십시오.
+""",
     tools=[
-        PreloadMemoryTool(),
-        *tools.active_mcp_toolsets,
         search_skills_tool,
     ]
 )
