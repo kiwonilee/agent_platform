@@ -47,6 +47,6 @@ root_agent = Agent(
 4. **소통 규칙**: 사용자와의 모든 대화와 최종 응답은 친절하고 정중한 한국어로 작성하십시오.
 """,
     tools=[
-        search_skills_tool,
+        search_skills_tool
     ]
 )

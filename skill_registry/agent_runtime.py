@@ -20,14 +20,12 @@ client = vertexai.Client(
 print("Wrapping agent in AdkApp...")
 adk_app = AdkApp(agent=agent)
 
-# env_vars["ADK_DISABLE_JSON_SCHEMA_FOR_FUNC_DECL"] = "1"
-# env_vars["ADK_ENABLE_FEATURES"] = "SKILL_TOOLSET"
-
 # Create a new resource with your agent deployed to Agent Runtime.
 remote_agent = client.agent_engines.create(
     agent=adk_app,
     config={
         "display_name": "Agent Skills",
+        "identity_type": types.IdentityType.AGENT_IDENTITY,
         "requirements": [
             "google-genai",
             "google-auth",
@@ -54,3 +52,16 @@ remote_agent = client.agent_engines.create(
 
 print("\n✅ Deployment successful!")
 print(f"Remote Agent Name: {remote_agent.api_resource.name}")
+effective_identity = remote_agent.api_resource.spec.effective_identity
+print(f"Agent Identity: {effective_identity}")
+
+print("\n[ 🔒 Required IAM Role Assignment Commands ]")
+print("# Grant as following permissions to the Agent Identity:")
+for role in [
+    "roles/aiplatform.viewer",
+    "roles/aiplatform.user",
+    "roles/serviceusage.serviceUsageConsumer"
+]:
+    print(f"gcloud projects add-iam-policy-binding {PROJECT_ID} \\")
+    print(f"    --member=\"principal://{effective_identity}\" \\")
+    print(f"    --role=\"{role}\"")
