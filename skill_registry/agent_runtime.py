@@ -53,4 +53,4 @@ remote_agent = client.agent_engines.create(
 )
 
 print("\n✅ Deployment successful!")
-print(f"Remote Agent Name: {remote_app.api_resource.name}")
+print(f"Remote Agent Name: {remote_agent.api_resource.name}")

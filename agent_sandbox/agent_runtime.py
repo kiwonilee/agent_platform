@@ -47,7 +47,7 @@ adk_app = AdkApp(agent=agent)
 
 # Deploy Agent to Vertex AI Agent Runtime by updating the same container
 print("Deploying Agent to Agent Runtime container...")
-remote_app = client.agent_engines.update(
+remote_agent = client.agent_engines.update(
     name=container_name,
     agent=adk_app,
     config={
@@ -78,4 +78,4 @@ remote_app = client.agent_engines.update(
 )
 
 print("\n✅ Deployment successful!")
-print(f"Remote Agent Name: {remote_app.api_resource.name}")
+print(f"Remote Agent Name: {remote_agent.api_resource.name}")
