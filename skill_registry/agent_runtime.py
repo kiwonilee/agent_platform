@@ -47,6 +47,8 @@ remote_agent = client.agent_engines.create(
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+            "ADK_DISABLE_JSON_SCHEMA_FOR_FUNC_DECL": "true",
+            "ADK_ENABLE_FEATURES": "SKILL_TOOLSET"
         }
     }
 )
