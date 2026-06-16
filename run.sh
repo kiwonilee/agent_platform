@@ -20,6 +20,30 @@ echo "Using Python command: $PYTHON_CMD"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -----------------------------------------------------------------------------
+# 0. Enable Required GCP APIs
+# -----------------------------------------------------------------------------
+echo "====================================================================="
+echo "⚙️ Enabling Required Google Cloud APIs..."
+echo "====================================================================="
+gcloud services enable \
+  agentregistry.googleapis.com \
+  aiplatform.googleapis.com \
+  apphub.googleapis.com \
+  apptopology.googleapis.com \
+  apigeeregistry.googleapis.com \
+  iamconnectors.googleapis.com \
+  iap.googleapis.com \
+  modelarmor.googleapis.com \
+  networksecurity.googleapis.com \
+  networkservices.googleapis.com \
+  observability.googleapis.com \
+  saasservicemgmt.googleapis.com \
+  securitycenter.googleapis.com \
+  texttospeech.googleapis.com \
+  --project="$PROJECT_ID"
+echo "✅ APIs enabled successfully!"
+
+# -----------------------------------------------------------------------------
 # 1. Deploy agent_registry_mcp
 # -----------------------------------------------------------------------------
 echo "====================================================================="
