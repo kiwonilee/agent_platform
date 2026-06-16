@@ -4,8 +4,6 @@ import sys
 import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
-from agent import root_agent as agent
-
 # Prevent environment variables from overriding explicit SDK location parameters
 os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
 
@@ -41,6 +39,14 @@ operation = client.agent_engines.sandboxes.create(
 sandbox_name = operation.response.name
 print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
 
+# Set the environment variable BEFORE importing the agent, so that
+# the AgentEngineSandboxCodeExecutor is created with the explicit sandbox resource name.
+print(f"Injecting SANDBOX_RESOURCE_NAME into local environment: {sandbox_name}")
+os.environ["SANDBOX_RESOURCE_NAME"] = sandbox_name
+
+# Now import the agent cleanly
+from agent import root_agent as agent
+
 # Use the proper wrapper class for your Agent Framework
 print("Wrapping agent in AdkApp...")
 adk_app = AdkApp(agent=agent)
@@ -53,10 +59,10 @@ remote_agent = client.agent_engines.update(
     config={
         "display_name": "Agent Sandbox",
         "requirements": [
-            "google-adk",
-            "google-cloud-aiplatform[adk,agent_engines]",
-            "cloudpickle",
-            "pydantic"
+            "google-adk==2.2.0",
+            "google-cloud-aiplatform[adk,agent_engines]==1.157.0",
+            "pydantic==2.13.4",
+            "cloudpickle==3.1.2"
         ],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
