@@ -19,7 +19,7 @@ else:
     code_executor = AgentEngineSandboxCodeExecutor()
 
 
-data_analyst = Agent(
+root_agent = Agent(
     model="gemini-3.5-flash",
     name="data_analyst",
     description="Expert data analyst for sales and business metrics",

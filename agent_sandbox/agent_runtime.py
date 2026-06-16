@@ -45,9 +45,10 @@ print(f"✅ Sandbox created successfully! Resource name: {sandbox_name}")
 print("Wrapping agent in AdkApp...")
 adk_app = AdkApp(agent=agent)
 
-# Deploy Agent to Vertex AI Agent Runtime in a single step
-print("Deploying Agent to Agent Runtime...")
-remote_app = client.agent_engines.create(
+# Deploy Agent to Vertex AI Agent Runtime by updating the same container
+print("Deploying Agent to Agent Runtime container...")
+remote_app = client.agent_engines.update(
+    name=container_name,
     agent=adk_app,
     config={
         "display_name": "Agent Sandbox",
