@@ -72,7 +72,7 @@ remote_agent = client.agent_engines.update(
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
             # Sandbox configuration injection
-            "SANDBOX_RESOURCE_NAME": sandbox_name,
+            "SANDBOX_RESOURCE_NAME": sandbox_name
         }
     },
 )
