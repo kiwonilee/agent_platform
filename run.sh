@@ -1,6 +1,9 @@
 #!/bin/bash
 set -eo pipefail
 
+# Get current script directory to run sub-deployments reliably
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # 1. Determine Google Cloud Project ID
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 if [ -z "$PROJECT_ID" ]; then
@@ -29,8 +32,8 @@ fi
 
 # 3. Generate .env file from template and copy to each directory
 echo "Generating .env file from .env.template..."
-sed -e "s|\your-project-id|${PROJECT_ID}|g" \
-    -e "s|\your-gcs-bucket|${STAGING_BUCKET_URI}|g" \
+sed -e "s|\${PROJECT_ID}|${PROJECT_ID}|g" \
+    -e "s|\${STAGING_BUCKET_URI}|${STAGING_BUCKET_URI}|g" \
     "$SCRIPT_DIR/.env.template" > "$SCRIPT_DIR/.env"
 
 echo "Distributing .env files to agent packages..."
@@ -47,8 +50,7 @@ else
 fi
 echo "Using Python command: $PYTHON_CMD"
 
-# Get current script directory to run sub-deployments reliably
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Redundant SCRIPT_DIR definition removed
 
 # -----------------------------------------------------------------------------
 # 0. Enable Required GCP APIs
