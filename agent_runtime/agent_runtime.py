@@ -33,6 +33,7 @@ remote_agent = client.agent_engines.create(
         "display_name": "Agent Registry for MCP",        
         # "service_account": service_account_email,
         "identity_type": types.IdentityType.AGENT_IDENTITY,
+        "staging_bucket": STAGING_BUCKET,
         "min_instances": 1,
         "max_instances": 10,
         "resource_limits": {"cpu": "1", "memory": "1Gi"},
@@ -57,8 +58,6 @@ remote_agent = client.agent_engines.create(
             # https://docs.cloud.google.com/iam/docs/troubleshoot-auth-manager?hl=ko#401-error
             "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "False"
         },
-        "gcs_dir_name": "None",
-        "agent_fremework": "google-adk"
     }
 )
 

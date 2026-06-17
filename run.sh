@@ -90,7 +90,7 @@ echo "====================================================================="
   cd "$SCRIPT_DIR/agent_registry"
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
-  EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "Agent Identity:" | awk '{print $3}')
+  EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "^Agent Identity:" | awk '{print $3}')
   if [ -n "$EFFECTIVE_IDENTITY" ]; then
     echo "✅ Found Agent Identity: $EFFECTIVE_IDENTITY"
     echo "🔒 Granting required IAM permissions to principal://${EFFECTIVE_IDENTITY}..."
@@ -133,7 +133,7 @@ echo "====================================================================="
   cd "$SCRIPT_DIR/skill_registry"
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
-  EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "Agent Identity:" | awk '{print $3}')
+  EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "^Agent Identity:" | awk '{print $3}')
   if [ -n "$EFFECTIVE_IDENTITY" ]; then
     echo "✅ Found Agent Identity: $EFFECTIVE_IDENTITY"
     echo "🔒 Granting required IAM permissions to principal://${EFFECTIVE_IDENTITY}..."
@@ -147,6 +147,33 @@ echo "====================================================================="
         --role="$role"
     done
     echo "🎉 IAM role assignment completed for skill_registry!"
+  else
+    echo "⚠️ Warning: Could not find Agent Identity in deployment output. Skipping IAM bindings."
+  fi
+)
+
+# -----------------------------------------------------------------------------
+# 4. Deploy agent_runtime
+# -----------------------------------------------------------------------------
+echo "====================================================================="
+echo "🚀 Deploying 'agent_runtime'..."
+echo "====================================================================="
+(
+  cd "$SCRIPT_DIR/agent_runtime"
+  DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
+  
+  EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "^Agent Identity:" | awk '{print $3}')
+  if [ -n "$EFFECTIVE_IDENTITY" ]; then
+    echo "✅ Found Agent Identity: $EFFECTIVE_IDENTITY"
+    echo "🔒 Granting required IAM permissions to principal://${EFFECTIVE_IDENTITY}..."
+    for role in \
+      "roles/aiplatform.user"
+    do
+      gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+        --member="principal://${EFFECTIVE_IDENTITY}" \
+        --role="$role"
+    done
+    echo "🎉 IAM role assignment completed for agent_runtime!"
   else
     echo "⚠️ Warning: Could not find Agent Identity in deployment output. Skipping IAM bindings."
   fi

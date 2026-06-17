@@ -1,7 +1,7 @@
 [project]
-name = "agent-platform"
+name = "agent-registry"
 version = "0.1.0"
-readme = "README.md"
+description = "BigQuery MCP Agent"
 requires-python = ">=3.11, <3.12"
 dependencies = [
     "google-genai",
@@ -13,9 +13,6 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "pydantic",
     "cloudpickle",
-    "pyyaml>=6.0.3",
+    "pyyaml",
     "google-api-core",
 ]
-
-[tool.uv]
-workspace = { members = ["agent_registry", "agent_sandbox", "skill_registry", "agent_runtime"] }
