@@ -104,11 +104,39 @@ uv run python agent_runtime.py
 
 ---
 
-## 🔍 5. 공통 API 호출 테스트 가이드 (curl)
+## 🔍 5. 공통 API 호출 테스트 가이드
 
 배포된 Reasoning Engine(Agent Runtime)에 API 요청을 보내 테스트를 수행합니다.
 
-### 1단계: 최초 1회 대화 세션 생성
+### 💡 자동화 테스트 스크립트 사용 (`test.sh`)
+이 과정을 편리하게 실행할 수 있도록 `test.sh` 스크립트를 제공합니다.
+
+#### 방법 1: 환경변수 일괄 등록 후 한 번에 테스트 (추천)
+배포된 에이전트들의 ID를 환경변수로 먼저 등록합니다:
+```bash
+export AGENT_RUNTIME_ID="2004689523144916992"
+export AGENT_REGISTRY_ID="3486936750503231488"
+export AGENT_SANDBOX_ID="1633705503840272384"
+export SKILL_REGISTRY_ID="7769297046179151872"
+```
+
+그 후, 매개변수 없이 실행하면 등록된 모든 에이전트에 대해 자동으로 순차 통합 테스트를 수행합니다:
+```bash
+chmod +x test.sh
+./test.sh
+```
+
+#### 방법 2: 특정 에이전트 개별 테스트
+아래와 같이 직접 REASONING_ENGINE_ID와 에이전트 종류를 명시하여 개별 테스트할 수 있습니다.
+```bash
+./test.sh <REASONING_ENGINE_ID> [agent_registry|agent_sandbox|skill_registry|agent_runtime]
+```
+
+---
+
+### 수동 테스트 (curl)
+
+#### 1단계: 최초 1회 대화 세션 생성
 ```bash
 export REASONING_ENGINE_ID="[배포 후 발급받은 REASONING_ENGINE_ID]"
 export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
