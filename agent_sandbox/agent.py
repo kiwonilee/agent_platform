@@ -7,16 +7,21 @@ import os
 from google.adk.agents.llm_agent import Agent
 from google.adk.code_executors.agent_engine_sandbox_code_executor import AgentEngineSandboxCodeExecutor
 
-# Explicitly use AgentEngineSandboxCodeExecutor
+class SafeSandboxCodeExecutor(AgentEngineSandboxCodeExecutor):
+    def __deepcopy__(self, memo):
+        # Return self to prevent deepcopy from trying to serialize internal thread locks/clients
+        return self
+
+# Explicitly use SafeSandboxCodeExecutor
 sandbox_resource_name = os.getenv("SANDBOX_RESOURCE_NAME")
 
 if sandbox_resource_name:
-    code_executor = AgentEngineSandboxCodeExecutor(
+    code_executor = SafeSandboxCodeExecutor(
         sandbox_resource_name=sandbox_resource_name
     )
 else:
     # If not set, let the SDK lazily create or manage sandbox environments using ambient project/location settings.
-    code_executor = AgentEngineSandboxCodeExecutor()
+    code_executor = SafeSandboxCodeExecutor()
 
 
 root_agent = Agent(
