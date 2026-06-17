@@ -29,7 +29,7 @@ print("Deploying Agent to Agent Runtime...")
 remote_agent = client.agent_engines.create(
     agent=adk_app,
     config={
-        "display_name": "Agent Registry for MCP",        
+        "display_name": "Agent Registry",
         # "service_account": service_account_email,
         "identity_type": types.IdentityType.AGENT_IDENTITY,
         "requirements": [
