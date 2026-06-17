@@ -43,8 +43,8 @@ uv sync
 ### 수동으로 설정할 경우
 1. 최상위 디렉토리에서 아래 명령어로 템플릿 파일로부터 `.env`를 생성하고 사용자의 Google Cloud 프로젝트 ID 및 버킷 이름으로 교체합니다.
    ```bash
-   sed -e "s|\${PROJECT_ID}|YOUR_PROJECT_ID|g" \
-       -e "s|\${STAGING_BUCKET_URI}|YOUR_STAGING_BUCKET_URI|g" \
+   sed -e "s|your-project-id|YOUR_PROJECT_ID|g" \
+       -e "s|your-gcs-bucket|YOUR_STAGING_BUCKET_URI|g" \
        .env.template > .env
    ```
 2. 생성된 `.env` 파일을 각 에이전트 디렉토리로 직접 복사 전파합니다.
