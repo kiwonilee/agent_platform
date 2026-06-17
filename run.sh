@@ -37,9 +37,10 @@ sed -e "s|\${PROJECT_ID}|${PROJECT_ID}|g" \
     "$SCRIPT_DIR/.env.template" > "$SCRIPT_DIR/.env"
 
 echo "Distributing .env files to agent packages..."
-cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/agent_registry_mcp/.env"
+cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/agent_registry/.env"
 cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/agent_sandbox/.env"
 cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/skill_registry/.env"
+cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/agent_runtime/.env"
 echo "✅ .env files distributed successfully!"
 
 # Determine Python command (force Python 3.11 to match Vertex AI Reasoning Engine runtime version)
@@ -80,16 +81,13 @@ gcloud services enable \
 echo "✅ APIs enabled successfully!"
 
 # -----------------------------------------------------------------------------
-# 1. Deploy agent_registry_mcp
+# 1. Deploy agent_registry
 # -----------------------------------------------------------------------------
 echo "====================================================================="
-echo "🚀 Deploying 'agent_registry_mcp'..."
+echo "🚀 Deploying 'agent_registry'..."
 echo "====================================================================="
 (
-  cd "$SCRIPT_DIR/agent_registry_mcp"
-  if command -v uv &> /dev/null; then
-    uv sync --python 3.11
-  fi
+  cd "$SCRIPT_DIR/agent_registry"
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
   EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "Agent Identity:" | awk '{print $3}')
@@ -107,7 +105,7 @@ echo "====================================================================="
         --member="principal://${EFFECTIVE_IDENTITY}" \
         --role="$role"
     done
-    echo "🎉 IAM role assignment completed for agent_registry_mcp!"
+    echo "🎉 IAM role assignment completed for agent_registry!"
   else
     echo "⚠️ Warning: Could not find Agent Identity in deployment output. Skipping IAM bindings."
   fi
@@ -133,9 +131,6 @@ echo "🚀 Deploying 'skill_registry'..."
 echo "====================================================================="
 (
   cd "$SCRIPT_DIR/skill_registry"
-  if command -v uv &> /dev/null; then
-    uv sync --python 3.11
-  fi
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
   EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "Agent Identity:" | awk '{print $3}')
