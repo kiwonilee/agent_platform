@@ -88,7 +88,7 @@ curl -X POST \
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "현재 GCP 프로젝트의 GKE 클러스터 목록을 조회해줘."
+      "message": "GKE 의 Cluster Upgrade 에 대한 Best Practice 에 대해서 알려줘"
     }
   }'
 ```
