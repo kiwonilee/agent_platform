@@ -1,6 +1,5 @@
 import os
 import sys
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import vertexai
 from vertexai import types
 from vertexai.agent_engines import AdkApp
