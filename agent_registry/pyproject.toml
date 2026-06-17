@@ -3,7 +3,7 @@ name = "agent-registry-mcp"
 version = "0.1.0"
 description = "BigQuery MCP Agent"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "google-genai",
     "google-auth>=2.53.0",
