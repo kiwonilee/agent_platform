@@ -1,23 +1,53 @@
 # Agent Platform
 
-A unified repository containing multiple AI agents and configurations for Vertex AI Agent Engine.
+Vertex AI Agent Engine에 다중 AI 에이전트를 통합 배포하고 관리하기 위한 **UV Workspace (Monorepo)** 기반의 표준 저장소입니다.
 
+---
 
+## 🏛️ 1. 아키텍처 및 UV Workspace 구조
 
-## Environment Setup
+본 프로젝트는 여러 개의 독립적인 Vertex AI ADK 에이전트를 일관되게 개발하고 배포하기 위해 **UV Workspace** 단일 가상환경 모델을 채택하고 있습니다.
 
-The agents require `.env` files in their respective directories containing project configuration (e.g. `PROJECT_ID`, `STAGING_BUCKET_URI`).
+### 📦 구성 에이전트 패키지
+1. **`agent_registry`** (`agent-registry`): MCP(Model Context Protocol) 툴셋을 이용해 Enterprise BigQuery 데이터셋을 쿼리하고 데이터 분석 결과를 요약하는 에이전트입니다.
+2. **`agent_sandbox`** (`agent-sandbox`): 코드를 격리된 환경에서 안전하게 실행할 수 있도록 돕는 샌드박스 에이전트입니다.
+3. **`skill_registry`** (`skill-registry`): 도구 및 스킬 등록부를 관리하는 에이전트입니다.
+4. **`agent_runtime`** (`agent-runtime`): 날씨, 시간 등 공통 시스템 도구를 탑재한 날씨/시간 실행 에이전트입니다.
 
-You can automatically generate and distribute these files from the template by running `run.sh`, or do it manually:
+### 🌟 Workspace 주요 특징
+* **단일 가상환경 통합 (`.venv`)**: 개별 프로젝트마다 가상환경을 복제 생성할 필요 없이, 루트 경로의 `.venv` 하나를 하위 4개 에이전트가 완벽히 공유하여 디스크 및 다운로드 용량을 최소화합니다.
+* **Vertex AI(Python 3.11) 호환성 잠금**: 구글 클라우드 Vertex AI Reasoning Engine 실행환경 버전에 완벽히 부합하도록 모든 패키지의 요구 버전을 `Requires-Python = ">=3.11, <3.12"`(CPython 3.11.x)로 일치시켰으며, 이를 `uv.lock`으로 묶어 패키지 충돌을 원천 차단합니다.
+* **개별 패키지 독립성**: 각 폴더의 `pyproject.toml`은 에이전트 고유의 명세와 디펜던시를 명확하게 보존합니다.
 
-1. Generate `.env` from the template (replace placeholders with your Google Cloud Project ID and GCS Staging Bucket URI):
+---
+
+## 🛠️ 2. 로컬 개발 환경 초기화 (Sync)
+
+협업을 시작하거나 코드를 로컬 가상환경에 동기화할 때, 워크스페이스 최상위 루트 디렉토리에서 아래 단 한 줄의 명령어로 모든 패키지 종속성을 정렬할 수 있습니다.
+
+```bash
+# 최상위 루트 경로에서 실행 (로컬 가상환경 빌드 및 동기화)
+uv sync
+```
+이 명령어는 하위 모든 패키지의 요구 명세를 자동으로 결합하여 단일 락 파일(`uv.lock`) 및 최적화된 최신 가상환경 `.venv`를 구축합니다.
+
+---
+
+## 🔑 3. 환경 변수 설정 (Environment Configuration)
+
+각 에이전트가 Vertex AI 및 Google Cloud 리소스에 접근하기 위해 프로젝트 ID(`PROJECT_ID`) 및 GCS 버킷 주소(`STAGING_BUCKET_URI`) 등의 환경변수 설정이 필요합니다.
+
+### 자동 배포 스크립트를 사용할 경우
+배포 스크립트(`run.sh`)가 실행 과정에서 루트 경로에 `.env` 파일이 없을 경우 `.env.template`을 기반으로 설정을 안내하며, 생성 완료 시 하위 패키지 디렉토리에 자동으로 전파 및 배포를 완료합니다.
+
+### 수동으로 설정할 경우
+1. 최상위 디렉토리에서 아래 명령어로 템플릿 파일로부터 `.env`를 생성하고 사용자의 Google Cloud 프로젝트 ID 및 버킷 이름으로 교체합니다.
    ```bash
    sed -e "s|\${PROJECT_ID}|YOUR_PROJECT_ID|g" \
        -e "s|\${STAGING_BUCKET_URI}|YOUR_STAGING_BUCKET_URI|g" \
        .env.template > .env
    ```
-
-2. Distribute the `.env` file to each agent directory:
+2. 생성된 `.env` 파일을 각 에이전트 디렉토리로 직접 복사 전파합니다.
    ```bash
    cp .env agent_registry/.env
    cp .env agent_sandbox/.env
@@ -25,51 +55,27 @@ You can automatically generate and distribute these files from the template by r
    cp .env agent_runtime/.env
    ```
 
-## How to Run
+---
 
-To run an agent, execute it from this root directory using `uv run` with the `--package` flag (Method A: Workspace Package Execution, recommended standard):
+## 🚀 4. 에이전트 클라우드 배포 가이드 (Vertex AI)
+
+작성 및 테스트가 완료된 에이전트 애플리케이션을 구글 클라우드 Vertex AI Reasoning Engine(Agent Runtime)에 배포하는 방식은 두 가지가 있습니다.
+
+### 방법 A: 전체 에이전트 자동 배포 및 권한 위임 (`run.sh` 사용)
+이 방식은 4개의 모든 에이전트를 순차적으로 배포하고, 배포 후 생성된 각각의 **Agent Identity**를 파싱하여 필요한 구글 클라우드 IAM 권한(`roles/aiplatform.user`, `roles/storage.objectAdmin`, `roles/bigquery.dataViewer` 등)을 자동으로 매핑 및 바인딩해 줍니다. 가장 편리하고 권장되는 프로덕션 배포 방식입니다.
 
 ```bash
-# Run agent registry (구 MCP 에이전트)
-uv run --package agent-registry python agent_registry/agent_runtime.py
-
-# Run skill registry
-uv run --package skill-registry python skill_registry/agent_runtime.py
-
-# Run agent runtime (날씨/시간 에이전트)
-uv run --package agent-runtime python agent_runtime/agent_runtime.py
-
-# Run agent sandbox
-uv run --package agent-sandbox python agent_sandbox/agent_runtime.py
+# 전체 에이전트 배포 및 IAM 바인딩 자동 일괄 처리
+bash run.sh
 ```
 
 ---
 
-## 🏛️ UV Workspace (Monorepo) 구조 및 개발 가이드
+### 방법 B: 특정 에이전트 단독 배포 (수동)
+특정 에이전트 폴더의 코드만 수정하여 **하나만 단독으로 클라우드에 배포**하고 싶을 때 사용합니다.
 
-본 리포지토리는 여러 개의 독립적인 Vertex AI ADK 에이전트를 효율적으로 공동 개발하기 위해 **UV Workspace (Monorepo)** 표준 모델을 채택하고 있습니다.
-
-### 🌟 핵심 설계 특징
-1. **단일 가상환경 통합 관리**: 루트 경로의 `.venv` 하나에서 하위 모든 에이전트의 라이브러리를 중앙 관리하여 중복 다운로드와 디스크 용량 낭비를 없앴습니다.
-2. **Vertex AI (Python 3.11) 호환성 보장**: 클라우드 실행환경 버전에 일치하는 **CPython 3.11** 기반의 통합 `uv.lock` 파일을 유지하여 로컬과 클라우드 배포 간 라이브러리 충돌이 발생하지 않습니다.
-3. **독립 패키지 정의**: 각 에이전트 디렉토리는 고유의 `pyproject.toml`을 가져 개별 패키지로서의 독립성을 완전히 유지합니다.
-
-### 🛠️ 로컬 환경 초기화 (Environment Sync)
-코드 수정 및 협업을 시작할 때, 루트 디렉토리에서 아래 단 한 줄의 명령어로 모든 패키지 종속성을 자동으로 빌드 및 정렬할 수 있습니다.
-```bash
-# 루트 디렉토리에서 최초 1회 실행
-uv sync
-```
-이 명령어는 하위 모든 서브 디렉토리의 패키지 요구 명세를 읽어 단일 락 파일(`uv.lock`) 및 최적화된 `.venv` 가상환경을 알아서 완성해 줍니다.
-
----
-
-## 🚀 개별 에이전트 수동/독립 배포 가이드
-
-전체 배포 스크립트인 `run.sh`를 사용하지 않고, 수정한 **특정 에이전트 하나만 클라우드(Vertex AI)에 단독으로 배포**하고 싶을 때는 아래 가이드를 따릅니다.
-
-### 1) 방법 A: 워크스페이스 루트에서 단독 배포 (가장 추천)
-하위 폴더로 이동할 필요 없이, 최상위 루트 경로에서 특정 에이전트 패키지만 지정해 즉각 배포를 실행합니다.
+#### **1) 워크스페이스 최상위 루트 디렉토리에서 실행 (권장)**
+하위 디렉토리로 이동할 필요 없이, 최상위 루트 경로에서 `--package` 플래그로 타겟 패키지를 지정하여 즉각 배포를 트리거합니다.
 
 ```bash
 # ① Agent Registry 단독 배포
@@ -85,13 +91,13 @@ uv run --package skill-registry python skill_registry/agent_runtime.py
 uv run --package agent-runtime python agent_runtime/agent_runtime.py
 ```
 
-### 2) 방법 B: 서브 디렉토리로 이동하여 단독 배포
-원하는 에이전트의 개발 작업 폴더로 직접 진입하여 배포 스크립트를 기동합니다. 이동하더라도 새로 가상환경을 만들지 않고 자동으로 워크스페이스의 통합 `.venv`를 공유하므로 매우 빠르고 안전합니다.
+#### **2) 서브 패키지 디렉토리 내부에서 직접 실행**
+원하는 에이전트 폴더에 들어간 뒤 `uv run`으로 배포를 기동합니다. 폴더 내부로 진입하더라도 새로 가상환경을 구축하지 않고 최상위 루트의 단일 `.venv` 가상환경을 공유하여 기동 속도가 매우 빠르고 종속성 충돌이 일어나지 않습니다.
 
 ```bash
-# 원하는 에이전트 폴더로 이동
-cd skill_registry
+# 원하는 폴더로 진입
+cd agent_registry
 
-# 배포 스크립트 단독 기동
+# 개별 단독 배포
 uv run python agent_runtime.py
 ```
