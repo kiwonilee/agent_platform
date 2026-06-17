@@ -12,10 +12,22 @@ fi
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
 ACCESS_TOKEN=$(gcloud auth print-access-token)
 
-# Load environment variables
+# Load environment variables conditionally (do not overwrite variables already defined in the shell)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/.env" ]; then
-  source "$SCRIPT_DIR/.env"
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    if [[ "$line" =~ ^([A-Za-z0-9_]+)=(.*)$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      val="${BASH_REMATCH[2]}"
+      val="${val#\"}"
+      val="${val%\"}"
+      if [ -z "${!key}" ]; then
+        export "$key"="$val"
+      fi
+    fi
+  done < "$SCRIPT_DIR/.env"
 fi
 
 # Function to run test for a specific agent type and ID

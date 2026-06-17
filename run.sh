@@ -43,6 +43,9 @@ cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/skill_registry/.env"
 cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/agent_runtime/.env"
 echo "✅ .env files distributed successfully!"
 
+# Temp file to collect deployed Reasoning Engine IDs
+ID_TEMP_FILE=$(mktemp)
+
 # Determine Python command (force Python 3.11 to match Vertex AI Reasoning Engine runtime version)
 if command -v uv &> /dev/null; then
   PYTHON_CMD="uv run --python 3.11 python"
@@ -91,6 +94,10 @@ echo "====================================================================="
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
   EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "^Agent Identity:" | awk '{print $3}')
+  REASONING_ENGINE_ID=$(echo "$DEPLOY_OUT" | grep "Remote Agent Name:" | awk -F'/' '{print $NF}')
+  if [ -n "$REASONING_ENGINE_ID" ]; then
+    echo "AGENT_REGISTRY_ID=$REASONING_ENGINE_ID" >> "$ID_TEMP_FILE"
+  fi
   if [ -n "$EFFECTIVE_IDENTITY" ]; then
     echo "✅ Found Agent Identity: $EFFECTIVE_IDENTITY"
     echo "🔒 Granting required IAM permissions to principal://${EFFECTIVE_IDENTITY}..."
@@ -119,7 +126,11 @@ echo "🚀 Deploying 'agent_sandbox'..."
 echo "====================================================================="
 (
   cd "$SCRIPT_DIR/agent_sandbox"
-  $PYTHON_CMD agent_runtime.py
+  DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
+  REASONING_ENGINE_ID=$(echo "$DEPLOY_OUT" | grep "Remote Agent Name:" | awk -F'/' '{print $NF}')
+  if [ -n "$REASONING_ENGINE_ID" ]; then
+    echo "AGENT_SANDBOX_ID=$REASONING_ENGINE_ID" >> "$ID_TEMP_FILE"
+  fi
   echo "🎉 agent_sandbox deployed successfully!"
 )
 
@@ -134,6 +145,10 @@ echo "====================================================================="
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
   EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "^Agent Identity:" | awk '{print $3}')
+  REASONING_ENGINE_ID=$(echo "$DEPLOY_OUT" | grep "Remote Agent Name:" | awk -F'/' '{print $NF}')
+  if [ -n "$REASONING_ENGINE_ID" ]; then
+    echo "SKILL_REGISTRY_ID=$REASONING_ENGINE_ID" >> "$ID_TEMP_FILE"
+  fi
   if [ -n "$EFFECTIVE_IDENTITY" ]; then
     echo "✅ Found Agent Identity: $EFFECTIVE_IDENTITY"
     echo "🔒 Granting required IAM permissions to principal://${EFFECTIVE_IDENTITY}..."
@@ -163,6 +178,10 @@ echo "====================================================================="
   DEPLOY_OUT=$($PYTHON_CMD agent_runtime.py 2>&1 | tee /dev/stderr)
   
   EFFECTIVE_IDENTITY=$(echo "$DEPLOY_OUT" | grep "^Agent Identity:" | awk '{print $3}')
+  REASONING_ENGINE_ID=$(echo "$DEPLOY_OUT" | grep "Remote Agent Name:" | awk -F'/' '{print $NF}')
+  if [ -n "$REASONING_ENGINE_ID" ]; then
+    echo "AGENT_RUNTIME_ID=$REASONING_ENGINE_ID" >> "$ID_TEMP_FILE"
+  fi
   if [ -n "$EFFECTIVE_IDENTITY" ]; then
     echo "✅ Found Agent Identity: $EFFECTIVE_IDENTITY"
     echo "🔒 Granting required IAM permissions to principal://${EFFECTIVE_IDENTITY}..."
@@ -182,3 +201,16 @@ echo "====================================================================="
 echo "====================================================================="
 echo "✨ All deployments and IAM configurations completed successfully!"
 echo "====================================================================="
+
+if [ -f "$ID_TEMP_FILE" ]; then
+  echo ""
+  echo "🔑 Run the following commands to export the deployed Agent IDs to your shell:"
+  echo "====================================================================="
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [[ "$line" =~ ^([A-Z_]+)=(.*)$ ]]; then
+      echo "export ${BASH_REMATCH[1]}=\"${BASH_REMATCH[2]}\""
+    fi
+  done < "$ID_TEMP_FILE"
+  echo "====================================================================="
+  rm -f "$ID_TEMP_FILE"
+fi

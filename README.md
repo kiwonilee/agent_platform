@@ -111,24 +111,22 @@ uv run python agent_runtime.py
 ### 💡 자동화 테스트 스크립트 사용 (`test.sh`)
 이 과정을 편리하게 실행할 수 있도록 `test.sh` 스크립트를 제공합니다.
 
-#### 방법 1: 환경변수 일괄 등록 후 한 번에 테스트 (추천)
-배포된 에이전트들의 ID를 환경변수로 먼저 등록합니다:
-```bash
-export AGENT_RUNTIME_ID="2004689523144916992"
-export AGENT_REGISTRY_ID="3486936750503231488"
-export AGENT_SANDBOX_ID="1633705503840272384"
-export SKILL_REGISTRY_ID="7769297046179151872"
-```
+배포 스크립트(`run.sh`) 실행이 완료되면, 터미널 맨 하단에 배포된 모든 에이전트들의 고유 ID가 `export` 명령어 형태로 일괄 출력됩니다. 해당 출력 블록을 복사해 터미널 세션에 입력(등록)하여 사용합니다.
 
-그 후, 매개변수 없이 실행하면 등록된 모든 에이전트에 대해 자동으로 순차 통합 테스트를 수행합니다:
+#### 방법 1: 전체 에이전트 일괄 테스트 (추천)
+출력된 환경변수를 등록한 후 바로 아래 명령어를 실행하면, 자동으로 전체 통합 테스트를 순차 수행합니다:
 ```bash
 chmod +x test.sh
 ./test.sh
 ```
 
 #### 방법 2: 특정 에이전트 개별 테스트
-아래와 같이 직접 REASONING_ENGINE_ID와 에이전트 종류를 명시하여 개별 테스트할 수 있습니다.
+환경변수로 내보낸 정보를 활용하거나, 혹은 직접 `REASONING_ENGINE_ID`를 매개변수로 명시하여 테스트할 수 있습니다.
 ```bash
+# 등록한 특정 에이전트 테스트 (예: agent_runtime)
+./test.sh agent_runtime
+
+# 특정 ID를 직접 지정하여 테스트
 ./test.sh <REASONING_ENGINE_ID> [agent_registry|agent_sandbox|skill_registry|agent_runtime]
 ```
 
