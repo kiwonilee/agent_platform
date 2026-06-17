@@ -1,5 +1,5 @@
 [project]
-name = "agent-registry"
+name = "agent-sandbox"
 version = "0.1.0"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -7,12 +7,9 @@ dependencies = [
     "google-genai",
     "google-auth>=2.53.0",
     "google-adk[agent-identity,a2a]>=2.1.0",
-    "a2a-sdk>=0.3.4,<0.4",
-    "mcp>=1.27.1",
     "google-cloud-aiplatform[adk,agent-engines]>=1.157.0",
     "python-dotenv>=1.2.2",
     "pydantic",
     "cloudpickle",
     "pyyaml>=6.0.3",
-    "google-api-core",
 ]

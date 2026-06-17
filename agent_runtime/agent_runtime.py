@@ -41,16 +41,13 @@ remote_agent = client.agent_engines.create(
         "requirements": [
             # See https://pypi.org/project/google-cloud-aiplatform for the latest version.
             "google-cloud-aiplatform[agent_engines,adk]",
+            "pydantic",
             "cloudpickle==3.0", # new
         ],  
         "extra_packages": ["agent.py"],
         "env_vars": {
             "GOOGLE_CLOUD_LOCATION": "global",
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
-            # SessionService, MemoryService, ArtifactService
-            "ADK_SESSION_SERVICE_URI": "agentengine://",
-            "ADK_MEMORY_SERVICE_URI": "agentengine://",
-            "ADK_ARTIFACT_SERVICE_URI": STAGING_BUCKET,
             # Telemetry            
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
