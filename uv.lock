@@ -49,7 +49,7 @@ dependencies = [
 requires-dist = [
     { name = "a2a-sdk", specifier = ">=0.3.4,<0.4" },
     { name = "cloudpickle" },
-    { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.1.0" },
+    { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.2.0" },
     { name = "google-api-core" },
     { name = "google-auth", specifier = ">=2.53.0" },
     { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = "==1.157.0" },
@@ -82,7 +82,7 @@ dependencies = [
 requires-dist = [
     { name = "a2a-sdk", specifier = ">=0.3.4,<0.4" },
     { name = "cloudpickle" },
-    { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.1.0" },
+    { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.2.0" },
     { name = "google-api-core" },
     { name = "google-auth", specifier = ">=2.53.0" },
     { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = ">=1.157.0" },
@@ -125,7 +125,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "cloudpickle" },
-    { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.1.0" },
+    { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.2.0" },
     { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = ">=1.157.0" },
     { name = "pydantic" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
@@ -1477,7 +1477,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "cloudpickle" },
-    { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.1.0" },
+    { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.2.0" },
     { name = "google-auth" },
     { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = ">=1.157.0" },
     { name = "google-genai" },

@@ -31,6 +31,13 @@ uv sync
 ```
 이 명령어는 하위 모든 패키지의 요구 명세를 자동으로 결합하여 단일 락 파일(`uv.lock`) 및 최적화된 최신 가상환경 `.venv`를 구축합니다.
 
+> [!IMPORTANT]
+> **`google-adk` 버전 준수 사항 (필수):**
+> 에이전트 배포 중 `TypeError: cannot pickle '_thread.lock' object` 오류가 발생하는 것을 방지하기 위해 **`google-adk>=2.2.0`** 버전 사용이 강제됩니다.
+> 
+> * **예방법:** 다른 장비에서 새로 개발 환경을 구축할 때는 수동 설치(`pip install` 등) 대신 반드시 최상위 디렉토리에서 `uv sync`를 실행하여 락 파일(`uv.lock`)에 지정된 최신 가상환경을 동기화해야 합니다.
+> * **프로그램 레벨 통제:** 워크스페이스 내 모든 `pyproject.toml` 및 배포 스크립트에서도 `google-adk>=2.2.0`으로 강제하도록 종속성이 수정되어 있습니다.
+
 ---
 
 ## 🔑 3. 환경 변수 설정 (Environment Configuration)

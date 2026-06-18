@@ -30,7 +30,7 @@ remote_agent = client.agent_engines.create(
         "requirements": [
             "google-genai",
             "google-auth",
-            "google-adk[agent-identity,a2a]>=2.1.0",
+            "google-adk[agent-identity,a2a]>=2.2.0",
             "google-cloud-aiplatform[agent_engines]",
             "python-dotenv",
             "pydantic",

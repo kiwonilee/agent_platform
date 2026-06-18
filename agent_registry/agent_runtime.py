@@ -33,7 +33,7 @@ remote_agent = client.agent_engines.create(
         # "service_account": service_account_email,
         "identity_type": types.IdentityType.AGENT_IDENTITY,
         "requirements": [
-            "google-adk[agent-identity,a2a]>=2.1.0",
+            "google-adk[agent-identity,a2a]>=2.2.0",
             "a2a-sdk",
             "google-cloud-aiplatform[agent_engines]",
             "cloudpickle",
