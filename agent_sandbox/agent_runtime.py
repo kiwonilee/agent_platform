@@ -2,6 +2,23 @@
 import os
 import sys
 import vertexai
+import google.adk
+
+# Ensure google-adk version is >= 2.2.0 to prevent deepcopy pickle lock errors
+try:
+    adk_ver = tuple(map(int, google.adk.__version__.split('.')[:3]))
+except Exception:
+    adk_ver = (0, 0, 0)
+
+if adk_ver < (2, 2, 0):
+    print(f"\n❌ ERROR: 구 버전 google-adk({google.adk.__version__})가 로드되었습니다.", file=sys.stderr)
+    print("에이전트 배포 중 'cannot pickle _thread.lock' 오류가 발생하는 것을 방지하기 위해 google-adk>=2.2.0 버전이 반드시 필요합니다.", file=sys.stderr)
+    print("해결을 위해 다음 명령어를 실행하여 가상환경을 업데이트하십시오:\n", file=sys.stderr)
+    print("    uv sync\n", file=sys.stderr)
+    print("또는:\n", file=sys.stderr)
+    print("    pip install --upgrade \"google-adk>=2.2.0\"\n", file=sys.stderr)
+    sys.exit(1)
+
 from vertexai import types
 from vertexai.agent_engines import AdkApp
 # Prevent environment variables from overriding explicit SDK location parameters
