@@ -146,44 +146,15 @@ print(f"배포 완료! 원격 에이전트 ID: {remote_app.api_resource.name}")
 
 ## 🔍 테스트
 
-### 1단계: 최초 1회 대화 세션 생성
+API를 직접 호출하기 위한 세션 생성 등의 기본 절차는 최상위 `README.md`의 [공통 API 호출 테스트 가이드](../README.md#🔍-5-공통-api-호출-테스트-가이드)를 참고하세요.
+
+### 테스트 쿼리 예시 (샌드박스 내 코드 실행 기능 테스트)
+
+세션이 생성된 후, 발급받은 `SESSION_ID`와 `REASONING_ENGINE_ID`를 환경 변수로 등록하고 아래와 같이 질문을 던져볼 수 있습니다.
+
 ```bash
-export REASONING_ENGINE_ID="[배포 완료 후 발급받은 REASONING_ENGINE_ID]"
 export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
 
-curl -X POST \
-  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
-  -H "Content-Type: application/json" \
-  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:query \
-  -d '{
-    "class_method": "create_session",
-    "input": {
-      "user_id": "test_user"
-    }
-  }'
-```
-
-**출력 예시 (`output`)**
-```json
-{
-  "output": {
-    "last_update_time": 1781269005.17933,
-    "events": [],
-    "state": {},
-    "app_name": "projects/...",
-    "id": "5918349553886560256",
-    "user_id": "test_user"
-  }
-}
-```
-
-발급받은 `"id"` 값을 복사하여 환경 변수로 할당합니다:
-```bash
-export SESSION_ID="5918349553886560256"
-```
-
-### 2단계: 첫 번째 질문 던지기 (샌드박스 내 코드 실행 기능 테스트)
-```bash
 curl -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
