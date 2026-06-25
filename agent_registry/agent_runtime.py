@@ -58,7 +58,7 @@ remote_agent = client.agent_engines.create(
             "mcp",
         ],        
         "staging_bucket": STAGING_BUCKET,
-        "extra_packages": ["agent.py"],
+        "extra_packages": [os.path.join(os.path.dirname(__file__), "agent.py")],
         "env_vars": {
             "GOOGLE_CLOUD_LOCATION": "global",
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
