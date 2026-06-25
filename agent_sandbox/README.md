@@ -21,7 +21,7 @@ Gemini 모델 자체의 내장 기능을 사용하는 **`BuiltInCodeExecutor`** 
 ### ⚙️ 배포 및 실행 방법
 
 1. **에이전트 런타임 배포**:
-   아래 명령어를 통해 Vertex AI Agent Engine 상에 격리형 샌드박스 환경을 자동으로 생성하고 에이전트를 빌드 및 배포합니다.
+   아래 명령어를 통해 Agent Runtime 상에 격리형 샌드박스 환경을 자동으로 생성하고 에이전트를 빌드 및 배포합니다.
    ```bash
    .venv/bin/python agent_runtime.py
    ```
