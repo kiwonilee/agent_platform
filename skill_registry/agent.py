@@ -31,7 +31,7 @@ root_agent = Agent(
         3. **스킬이 없는 경우 처리 (종료)**: 만약 검색 결과 요청을 처리할 수 있는 적합한 스킬이 레지스트리에 존재하지 않는 경우, 추가적인 작업이나 추측을 하지 말고 즉시 "요청하신 작업을 수행할 수 있는 적절한 스킬(플레이북)을 스킬 레지스트리에서 찾을 수 없습니다." 라고 한국어로 응답하고 대화를 바로 종료하십시오.
         4. **소통 규칙**: 사용자와의 모든 대화와 최종 응답은 친절하고 정중한 한국어로 작성하십시오.
         """,
-    # 3. Define your Agent with the SkillToolset
+    # 3. Define your Agent with the SkillToolset/
     tools=[skill_toolset],
 )
 
