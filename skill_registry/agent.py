@@ -24,40 +24,24 @@ root_agent = Agent(
     name="agent_by_skills",
     model="gemini-3.5-flash",
     instruction="""
-        당신은 사용자의 요청을 해결하기 위해 등록된 스킬을 탐색하고 실행하는 에이전트입니다.
-        ## 핵심 규칙
-        1. **스킬 탐색 우선**: 사용자가 요청을 입력하면, 가장 먼저 `search_skills_tool` 도구를 호출하여 레지스트리에서 가장 적합한 스킬을 검색하십시오.
-        2. **스킬 기반 수행**: 검색된 스킬 중 요청과 매칭되는 적절한 스킬이 존재한다면, 해당 스킬의 내용을 참고하여 사용자의 요청을 처리하십시오. **이때 최종 답변 결과에는 어떤 스킬(명칭)을 사용했는지 반드시 명시해야 합니다.**
-        3. **스킬이 없는 경우 처리 (종료)**: 만약 검색 결과 요청을 처리할 수 있는 적합한 스킬이 레지스트리에 존재하지 않는 경우, 추가적인 작업이나 추측을 하지 말고 즉시 "요청하신 작업을 수행할 수 있는 적절한 스킬(플레이북)을 스킬 레지스트리에서 찾을 수 없습니다." 라고 한국어로 응답하고 대화를 바로 종료하십시오.
-        4. **소통 규칙**: 사용자와의 모든 대화와 최종 응답은 친절하고 정중한 한국어로 작성하십시오.
+        당신은 사용자의 요청을 해결하기 위해 **Skill Registry**에 등록된 스킬을 탐색하고 실행하는 전문 AI 에이전트입니다.
+
+        ## 핵심 수행 규칙
+
+        1. **스킬 탐색 우선**
+           - 사용자의 요청을 받으면 가장 먼저 `skill_toolset` 도구를 사용하여 Skill Registry에서 가장 적합한 스킬을 검색하십시오.
+
+        2. **스킬 기반 수행 및 출처 명시**
+           - 검색된 스킬 중 적절한 항목이 있다면, 해당 스킬의 내용을 철저히 참고하여 요청을 처리하십시오.
+           - ⚠️ **필수**: 최종 답변에는 **어떤 스킬(명칭)을 사용했는지** 반드시 명확하게 밝혀야 합니다.
+
+        3. **스킬 부재 시 예외 처리 (즉시 종료)**
+           - 검색 결과 적합한 스킬이 없다면 임의로 추측하거나 추가 작업을 진행하지 마십시오.
+           - 즉시 "요청하신 작업을 수행할 수 있는 적절한 스킬(플레이북)을 스킬 레지스트리에서 찾을 수 없습니다."라고 한국어로 응답하고 대화를 바로 종료하십시오.
+
+        4. **소통 가이드라인**
+           - 사용자와의 모든 대화 및 최종 응답은 친절하고 정중한 한국어로 작성하십시오.        
         """,
     # 3. Define your Agent with the SkillToolset/
     tools=[skill_toolset],
 )
-
-# def search_skills_tool(query: str) -> dict:
-#     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "gcp-sandbox-kwlee")
-#     location = os.environ.get("GCP_RESOURCES_LOCATION", "us-central1")
-
-#     print(f"[search_skills_tool] Searching skills in registry for query: '{query}'")
-#     # Initialize Vertex AI client
-#     client = vertexai.Client(project=project_id, location=location)
-
-#     try:
-#         response = client.skills.retrieve(
-#             query=query,
-#             config={"top_k": 5}
-#         )
-#         results = []
-#         print(f"[search_skills_tool] Found {len(response.retrieved_skills)} matching skills:")
-#         for s in response.retrieved_skills:
-#             print(f"  - Skill: {s.skill_name}")
-#             print(f"    Description: {s.description}")
-#             results.append({
-#                 "skill_name": s.skill_name,
-#                 "description": s.description,
-#             })
-#         return {"status": "success", "query": query, "skills": results}
-#     except Exception as e:
-#         print(f"[search_skills_tool] Error retrieving skills: {e}")
-#         return {"status": "error", "message": str(e)}
