@@ -15,6 +15,7 @@ PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.environ.get("GCP_RESOURCES_LOCATION", "us-central1")
 STAGING_BUCKET = os.environ.get("STAGING_BUCKET_URI")
 SERVICE_ACCOUNT = os.environ.get("SERVICE_ACCOUNT")
+MCP_SERVER_NAME = os.environ.get("MCP_SERVER_NAME")
 
 print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION}, Service Account: {SERVICE_ACCOUNT})...")
 client = vertexai.Client(
@@ -44,7 +45,7 @@ remote_agent = client.agent_engines.create(
         "extra_packages": ["agent.py"],
         "env_vars": {
             "GOOGLE_CLOUD_LOCATION": "global",
-            "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+            "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",            
             # SessionService, MemoryService, ArtifactService
             "ADK_SESSION_SERVICE_URI": "agentengine://",
             "ADK_MEMORY_SERVICE_URI": "agentengine://",
@@ -52,7 +53,9 @@ remote_agent = client.agent_engines.create(
             # Telemetry            
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
-            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY"
+            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+            # Agent Registry MCP NAME
+            "MCP_SERVER_NAME" : MCP_SERVER_NAME
         }
     }
 )

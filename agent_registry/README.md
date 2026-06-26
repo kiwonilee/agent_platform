@@ -11,12 +11,19 @@ cd ~/agent_platform/agent_registry
 
 ```bash
 export PROJECT_ID="YOUR_PROJECT_ID"
-export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI" # gs://adk-sandbox-bucket
 
+export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
 export SERVICE_ACCOUNT="agent-registry-sa"
 ```
 
-#### 2. 서비스 계정 생성 및 권한 설정
+### 2. Cloud Storage 버킷 생성
+배포 산출물을 저장할 Google Cloud Storage 버킷을 생성합니다. (이미 사용 중인 버킷이 있다면 이 단계는 건너뛰셔도 됩니다.)
+
+```bash
+gcloud storage buckets create ${STAGING_BUCKET_URI} --location=us-central1
+```
+
+### 3. 서비스 계정 생성 및 권한 설정
 ```bash
 # 서비스 계정 이메일 주소 정의 (자동 매칭)
 export SA_EMAIL="${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
@@ -26,52 +33,27 @@ gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
     --description="Service account for Agent Registry deployment" \
     --display-name="agent-registry-sa"
 
-# Cloud Trace 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/cloudtrace.user"
+# 필요한 IAM 역할 목록
+ROLES=(
+    "roles/cloudtrace.user"
+    "roles/cloudtrace.agent"
+    "roles/logging.viewer"
+    "roles/logging.logWriter"
+    "roles/storage.objectAdmin"
+    "roles/aiplatform.user"    
+    "roles/agentregistry.viewer"
+    "roles/mcp.toolUser"
+)
 
-# Cloud Trace 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/cloudtrace.agent"
-
-# Cloud Logging 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/logging.viewer"
-
-# Cloud Logging 권한 부여
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/logging.logWriter"
-
-# BigQuery 데이터 조회 및 작업 수행 권한 부여
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/bigquery.dataViewer"
-
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/bigquery.jobUser"
-
-# Cloud Storage 객체 관리 권한 부여 (Staging Bucket 업로드용)
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/storage.objectAdmin"
-
-# Vertex AI API 사용 권한 부여
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/aiplatform.user"
-
-# MCP 도구 사용 권한 부여
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/mcp.toolUser"
+# 반복문을 통해 권한 일괄 부여
+for ROLE in "${ROLES[@]}"; do
+    gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+        --member="serviceAccount:${SA_EMAIL}" \
+        --role="${ROLE}"
+done
 ```
 
-### 3. `.env` 파일 생성 및 서비스 계정 추가
+### 4. `.env` 파일 생성 및 서비스 계정 추가
 부모 디렉토리의 환경 변수 템플릿(`.env.template`)을 참조하여 프로젝트 정보를 치환한 로컬 `.env` 파일을 생성하고, 배포에 사용할 서비스 계정 이메일 변수를 안전하게 등록합니다.
 
 ```bash
@@ -82,10 +64,25 @@ sed -e "s|your-project-id|${PROJECT_ID}|g" \
 
 # 2. 서비스 계정 이메일을 배포 환경 변수로 추가 등록
 echo "SERVICE_ACCOUNT=${SA_EMAIL}" >> .env
+```
 
-# 3. 설정이 정상적으로 적용되었는지 확인
+### 5. `.env` 파일에 MCP 서버 정보 등록
+에이전트가 연동할 Google Cloud Logging MCP 서버를 `gcloud` 명령어로 검색하여 리소스 이름을 `.env` 파일에 자동으로 등록합니다.
+
+```bash
+# 1. logging.googleapis.com MCP 서버의 ID를 조회하여 .env 파일에 등록합니다.
+export MCP_SERVER_ID=$(gcloud alpha agent-registry mcp-servers list \
+    --location=global \
+    --filter="displayName:logging.googleapis.com" \
+    --format="value(name.basename())")
+
+echo "MCP_SERVER_NAME=\"mcpServers/${MCP_SERVER_ID}\"" >> .env
+
+# 2. 최종 설정이 정상적으로 반영되었는지 확인
 cat .env
 ```
+
+
 
 ---
 
