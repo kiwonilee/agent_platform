@@ -9,7 +9,6 @@ from google.adk.integrations.agent_registry import AgentRegistry
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
-from google.adk.tools.base_toolset import BaseToolset
 
 from google.genai import types
 from google.adk.apps import App
@@ -40,7 +39,9 @@ root_agent = Agent(
     name="agent_registry_agent",
     model="gemini-3.5-flash",
     instruction=(
-        "You are a AI logging agentwho can answer questions."
+        "You are an AI logging agent who can answer questions.\n"
+        "Your target Google Cloud Project ID is '{project_id?}'.\n"
+        "If the target project_id is empty, None, or not set, politely ask the user to provide their Google Cloud Project ID first. "        
     ),
     after_agent_callback=generate_memories_callback,
     tools=[mcp_toolset, PreloadMemoryTool()]
