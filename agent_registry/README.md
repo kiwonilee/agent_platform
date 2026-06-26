@@ -10,10 +10,6 @@ cd ~/agent_platform/agent_registry
 ```
 
 ```bash
-# 1. 대상 GCP 프로젝트 ID 설정 및 필수 API 활성화
-export PROJECT_ID="YOUR_PROJECT_ID"
-gcloud config set project ${PROJECT_ID}
-
 gcloud services enable \
     aiplatform.googleapis.com \
     agentregistry.googleapis.com \
@@ -24,7 +20,8 @@ gcloud services enable \
 ```
 
 ```bash
-# 2. 추가 배포 환경 변수 설정
+export PROJECT_ID="YOUR_PROJECT_ID"
+
 export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
 export SERVICE_ACCOUNT="agent-registry-sa"
 ```
@@ -84,12 +81,12 @@ echo "SERVICE_ACCOUNT=${SA_EMAIL}" >> .env
 
 ```bash
 # 1. logging.googleapis.com MCP 서버의 ID를 조회하여 .env 파일에 등록합니다.
-export MCP_SERVER_ID=$(gcloud alpha agent-registry mcp-servers list \
+export MCP_SERVER_NAME=$(gcloud alpha agent-registry mcp-servers list \
     --location=global \
     --filter="displayName:logging.googleapis.com" \
     --format="value(name.basename())")
 
-echo "MCP_SERVER_NAME=\"mcpServers/${MCP_SERVER_ID}\"" >> .env
+echo "MCP_SERVER_NAME=\"mcpServers/${MCP_SERVER_NAME}\"" >> .env
 
 # 2. 최종 설정이 정상적으로 반영되었는지 확인
 cat .env

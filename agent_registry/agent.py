@@ -41,7 +41,6 @@ root_agent = Agent(
     model="gemini-3.5-flash",
     instruction=(
         "You are a AI logging agentwho can answer questions."
-        "When executing queries to cloud logging, use project_id `{project_id} as the project unless the user specifies a different one.`"
     ),
     after_agent_callback=generate_memories_callback,
     tools=[mcp_toolset, PreloadMemoryTool()]
