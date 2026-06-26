@@ -25,6 +25,11 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --member="serviceAccount:${SA_EMAIL}" \
     --role="roles/cloudtrace.user"
 
+# Cloud Trace 권한 부여 for Agent Trace
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/cloudtrace.agent"
+
 # Cloud Logging 권한 부여 for Agent Trace
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --member="serviceAccount:${SA_EMAIL}" \
@@ -128,7 +133,7 @@ curl -X POST \
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "현재 빅쿼리의 dataset 리스트 알려줘."
+      "message": "최근 발생한 에러로그 5개를 분석해줘."
     }
   }'
 ```
