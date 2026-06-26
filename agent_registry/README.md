@@ -2,16 +2,29 @@
 
 ## 🚀 Agent Runtime 배포를 위한 기본 설정
 
-### 1. 환경 변수 설정
-배포에 사용할 Google Cloud Project ID, Staging용 Cloud Storage 버킷 URI, 그리고 서비스 계정 이름을 정의합니다.
+### 1. 환경 변수 및 관련 API 활성화
+배포에 사용할 Google Cloud Project ID를 설정하고 필수 API들을 활성화한 후, 배포 관련 환경 변수를 정의합니다.
 
 ```bash
 cd ~/agent_platform/agent_registry
 ```
 
 ```bash
+# 1. 대상 GCP 프로젝트 ID 설정 및 필수 API 활성화
 export PROJECT_ID="YOUR_PROJECT_ID"
+gcloud config set project ${PROJECT_ID}
 
+gcloud services enable \
+    aiplatform.googleapis.com \
+    agentregistry.googleapis.com \
+    logging.googleapis.com \
+    cloudtrace.googleapis.com \
+    storage.googleapis.com \
+    iam.googleapis.com
+```
+
+```bash
+# 2. 추가 배포 환경 변수 설정
 export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
 export SERVICE_ACCOUNT="agent-registry-sa"
 ```
