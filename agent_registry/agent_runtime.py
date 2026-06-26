@@ -8,7 +8,7 @@ from vertexai.agent_engines import AdkApp
 from agent import root_agent as agent
 
 # Load environment variables from .env
-load_dotenv()
+load_dotenv(override=True)
 
 # Configuration parameters
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
@@ -16,7 +16,7 @@ LOCATION = os.environ.get("GCP_RESOURCES_LOCATION", "us-central1")
 STAGING_BUCKET = os.environ.get("STAGING_BUCKET_URI")
 SERVICE_ACCOUNT = os.environ.get("SERVICE_ACCOUNT")
 
-print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION})...")
+print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION}, Service Account: {SERVICE_ACCOUNT})...")
 client = vertexai.Client(
     project=PROJECT_ID,
     location=LOCATION

@@ -8,7 +8,7 @@ from vertexai.agent_engines import AdkApp
 from agent import root_agent as agent
 
 # Load environment variables from .env
-load_dotenv()
+load_dotenv(override=True)
 
 # Configuration parameters
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
@@ -16,7 +16,7 @@ LOCATION = os.environ.get("GCP_RESOURCES_LOCATION", "us-central1")
 STAGING_BUCKET = os.environ.get("STAGING_BUCKET_URI")
 SERVICE_ACCOUNT = os.environ.get("SERVICE_ACCOUNT")
 
-print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION})...")
+print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION}, Service Account: {SERVICE_ACCOUNT})...")
 client = vertexai.Client(
     project=PROJECT_ID, 
     location=LOCATION
@@ -33,12 +33,15 @@ remote_agent = client.agent_engines.create(
         "display_name": "Agent Skills",
         "service_account" : SERVICE_ACCOUNT,
         "requirements": [
-            "google-adk[agent-identity,a2a]>=2.2.0",            
-            "google-cloud-aiplatform[adk,agent_engines]>=1.157.0",
-            "a2a-sdk>=0.3.4,<0.4",
+            "google-adk[agent-identity,a2a]>=2.2.0",
+            "google-cloud-aiplatform[agent_engines]",
+            "google-genai",
+            "google-auth",
             "python-dotenv",
             "pydantic",
-            "cloudpickle"
+            "cloudpickle",
+            "mcp>=1.27.1",
+            "pyyaml>=6.0.3",
         ],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],
@@ -48,8 +51,8 @@ remote_agent = client.agent_engines.create(
             # SessionService, MemoryService, ArtifactService
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
-            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY"
-            # Telemetry            
+            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+            # Telemetry
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY"
