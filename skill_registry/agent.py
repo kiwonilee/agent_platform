@@ -1,10 +1,12 @@
 import os
+
 from dotenv import load_dotenv
+
 from google.adk.agents.llm_agent import Agent
 from google.adk.integrations.skill_registry import GCPSkillRegistry
 from google.adk.tools.skill_toolset import SkillToolset
-# import vertexai
 
+# Load environment variables from .env
 load_dotenv()
 
 # 1. Initialize the GCP Skill Registry

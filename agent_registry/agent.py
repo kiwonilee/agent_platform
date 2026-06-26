@@ -2,6 +2,8 @@ import os
 import httpx
 import google.auth
 
+from dotenv import load_dotenv
+
 from google.auth.transport.requests import Request
 from google.adk.integrations.agent_registry import AgentRegistry
 from google.adk.agents.llm_agent import Agent
@@ -11,7 +13,6 @@ from google.adk.tools.base_toolset import BaseToolset
 
 from google.genai import types
 from google.adk.apps import App
-from dotenv import load_dotenv
 
 # Load environment variables from .env
 load_dotenv()

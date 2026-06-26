@@ -1,54 +1,119 @@
-# Skill Registry 연동 (#Agent Identity, #Skill Registry, #Agent Runtime)
+# Skill Registry 로 부타 Agent Skill 을 조회하여 동작하는 AI Agent
 
-이 프로젝트는 **Gemini Enterprise Agent Platform Skill Registry**에 등록된 플레이북 스킬들을 원격 **Agent Runtime**과 Agent Identity (`types.IdentityType.AGENT_IDENTITY`) 모드로 연동하여 배포하고 서빙하는 환경을 제공합니다.
+## 🚀 Agent Runtime 배포를 위한 기본 설정
 
----
-
-## 🚀 배포 및 권한 설정 가이드
-
-### 1. Agent Runtime에 배포
-`agent_platform/skill_registry/` 디렉터리 내에서 아래 배포 명령을 실행합니다:
+### 1. 환경 변수 설정
+배포에 사용할 Google Cloud Project ID, Staging용 Cloud Storage 버킷 URI, 그리고 서비스 계정 이름을 정의합니다.
 
 ```bash
-uv run agent_runtime.py
+cd ~/agent_platform/skill_registry
 ```
-* 배포가 성공하면 콘솔 창에 **Reasoning Engine Resource Name (Remote Agent Name)**과 **Agent Identity (Federated ID)** 정보가 출력됩니다.
-
-### 2. Agent Identity에 대한 GCP IAM 권한 할당 (필수)
-배포 완료 후, 최종 출력된 에이전트의 고유 Identity가 Skill Registry 데이터베이스에 직접 접근하고 쿼리를 수행할 수 있도록 필요한 권한을 할당합니다.
-
-> [!WARNING]
-> Agent Identity 바인딩 시에는 `user`나 `serviceAccount` 대신, 반드시 **Workload Identity URI 형식(`principal://`)**을 member 인자로 지정해야 오류가 나지 않습니다.
 
 ```bash
-export PROJECT_ID="[GCP 프로젝트 ID]"
-export EFFECTIVE_IDENTITY="[출력된 Agent Identity 값 (e.g. projects/...)]"
+export PROJECT_ID="YOUR_PROJECT_ID"
+export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI"
 
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="principal://${EFFECTIVE_IDENTITY}" \
-    --role="roles/aiplatform.viewer"
+export SERVICE_ACCOUNT="skill-registry-sa"
+```
 
+#### 2. 서비스 계정 생성 및 권한 설정
+```bash
+# 서비스 계정 이메일 주소 정의 (자동 매칭)
+export SA_EMAIL="${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# 서비스 계정 생성
+gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
+    --description="Service account for Agent Registry deployment" \
+    --display-name="skill-registry-sa"
+
+# Cloud Trace 권한 부여 for Agent Trace
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="principal://${EFFECTIVE_IDENTITY}" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/cloudtrace.user"
+
+# Cloud Trace 권한 부여 for Agent Trace
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/cloudtrace.agent"
+
+# Cloud Logging 권한 부여 for Agent Trace
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/logging.viewer"
+
+# Cloud Logging 권한 부여
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/logging.logWriter"
+
+# Vertex AI API 사용 권한 부여
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
     --role="roles/aiplatform.user"
 
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="principal://${EFFECTIVE_IDENTITY}" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/aiplatform.user"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
     --role="roles/serviceusage.serviceUsageConsumer"
+```
+
+### 3. `.env` 파일 생성 및 서비스 계정 추가
+부모 디렉토리의 환경 변수 템플릿(`.env.template`)을 참조하여 프로젝트 정보를 치환한 로컬 `.env` 파일을 생성하고, 배포에 사용할 서비스 계정 이메일 변수를 안전하게 등록합니다.
+
+```bash
+# 1. 환경 변수 템플릿을 치환하여 로컬 .env 생성 (agent_registry 디렉토리 내부에서 실행)
+sed -e "s|your-project-id|${PROJECT_ID}|g" \
+    -e "s|your-gcs-bucket|${STAGING_BUCKET_URI}|g" \
+    ../.env.template > .env
+
+# 2. 서비스 계정 이메일을 배포 환경 변수로 추가 등록
+echo "SERVICE_ACCOUNT=${SA_EMAIL}" >> .env
+
+# 3. 설정이 정상적으로 적용되었는지 확인
+cat .env
 ```
 
 ---
 
+## 🚀 Agent Runtime 배포
+
+아래의 명령어를 실행하여 에이전트를 Vertex AI Agent Runtime에 성공적으로 배포합니다.
+```bash
+uv run python agent_runtime.py
+```
+
+---
+
+
 ## 🔍 테스트
 
-API를 직접 호출하기 위한 세션 생성 등의 기본 절차는 최상위 `README.md`의 [공통 API 호출 테스트 가이드](../README.md#🔍-5-공통-api-호출-테스트-가이드)를 참고하세요.
+배포 완료 후 반환받은 `REASONING_ENGINE_ID`를 이용하여 에이전트와 대화를 시작하고 동작을 직접 검증합니다.
 
-### 테스트 쿼리 예시 (스킬 기반 처리 테스트)
-
-세션이 생성된 후, 발급받은 `SESSION_ID`와 `REASONING_ENGINE_ID`를 환경 변수로 등록하고 아래와 같이 질문을 던져볼 수 있습니다.
-
+### 1. 세션 생성
+새로운 세션을 생성하여 대화를 준비합니다.
 ```bash
+export REASONING_ENGINE_ID="[배포 후 발급받은 REASONING_ENGINE_ID]"
 export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
+
+curl -X POST \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:query \
+  -d '{
+    "class_method": "create_session",
+    "input": {
+      "user_id": "test_user"
+    }
+  }'
+```
+
+### 2. 쿼리 실행 (대화 테스트)
+세션 생성 성공 시 전달받은 `SESSION_ID`를 등록하여 Skill Registry의 플레이북 지식을 RAG 검색 및 지식 기반 답변으로 유도하는 질문을 에이전트에게 던져봅니다.
+```bash
+export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
 
 curl -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \

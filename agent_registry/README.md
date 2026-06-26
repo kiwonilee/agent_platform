@@ -15,10 +15,16 @@ export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI" # gs://adk-sandbox-buck
 
 export SERVICE_ACCOUNT="agent-registry-sa"
 ```
+
 #### 2. 서비스 계정 생성 및 권한 설정
 ```bash
 # 서비스 계정 이메일 주소 정의 (자동 매칭)
 export SA_EMAIL="${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# 서비스 계정 생성
+gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
+    --description="Service account for Agent Registry deployment" \
+    --display-name="agent-registry-sa"
 
 # Cloud Trace 권한 부여 for Agent Trace
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
@@ -39,11 +45,6 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --member="serviceAccount:${SA_EMAIL}" \
     --role="roles/logging.logWriter"
-
-# 서비스 계정 생성
-gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
-    --description="Service account for Agent Registry deployment" \
-    --display-name="agent-registry-sa"
 
 # BigQuery 데이터 조회 및 작업 수행 권한 부여
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
