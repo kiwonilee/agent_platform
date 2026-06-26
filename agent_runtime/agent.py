@@ -15,6 +15,11 @@
 import datetime
 from zoneinfo import ZoneInfo
 from google.adk.agents import Agent
+from google.adk.agents.callback_context import CallbackContext
+
+# from google.adk.tools.load_memory_tool import LoadMemoryTool
+from google.adk.tools.preload_memory_tool import PreloadMemoryTool
+
 
 def get_weather(city: str) -> dict:
     if city.lower() == "new york":
@@ -40,10 +45,29 @@ def get_current_time(city: str) -> dict:
 
     tz = ZoneInfo(tz_identifier)
     now = datetime.datetime.now(tz)
-    report = (
-        f'The current time in {city} is {now.strftime("%Y-%m-%d %H:%M:%S %Z%z")}'
-    )
+    report = f"The current time in {city} is {now.strftime('%Y-%m-%d %H:%M:%S %Z%z')}"
     return {"status": "success", "report": report}
+
+
+# # https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#manage-memories
+# async def add_session_to_memory_callback(callback_context: CallbackContext):
+#     await callback_context.add_session_to_memory()
+#     return None
+
+
+# https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart?hl=ko#memory-generation-callback
+async def generate_memories_callback(callback_context: CallbackContext):
+    # Option 1 (Recommended): Send events to Memory Bank for memory generation,
+    # which is ideal for incremental processing of events.
+    await callback_context.add_events_to_memory(
+        events=callback_context.session.events[-5:-1]
+    )
+
+    # Option 2: Send the full session to Memory Bank for memory generation.
+    # It's recommended to only call this at the end of a session to minimize
+    # how many times a single event is re-processed.
+    # await callback_context.add_session_to_memory()
+    return None
 
 
 root_agent = Agent(
@@ -51,5 +75,7 @@ root_agent = Agent(
     model="gemini-3.5-flash",
     description="Agent to answer questions about the time and weather in a city.",
     instruction="You are a helpful agent who can answer user questions about the time and weather in a city.",
-    tools=[get_weather, get_current_time]
+    after_agent_callback=generate_memories_callback,
+    # https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart?hl=ko#define_a_memory_retrieval_tool
+    tools=[get_weather, get_current_time, PreloadMemoryTool()],
 )
