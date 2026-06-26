@@ -68,14 +68,10 @@ dependencies = [
     { name = "a2a-sdk" },
     { name = "cloudpickle" },
     { name = "google-adk", extra = ["a2a", "agent-identity"] },
-    { name = "google-api-core" },
     { name = "google-auth" },
     { name = "google-cloud-aiplatform", extra = ["adk", "agent-engines"] },
-    { name = "google-genai" },
     { name = "mcp" },
     { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
 ]
 
 [package.metadata]
@@ -83,14 +79,10 @@ requires-dist = [
     { name = "a2a-sdk", specifier = ">=0.3.4,<0.4" },
     { name = "cloudpickle" },
     { name = "google-adk", extras = ["agent-identity", "a2a"], specifier = ">=2.2.0" },
-    { name = "google-api-core" },
     { name = "google-auth", specifier = ">=2.53.0" },
     { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = ">=1.157.0" },
-    { name = "google-genai" },
     { name = "mcp", specifier = ">=1.27.1" },
     { name = "pydantic" },
-    { name = "python-dotenv", specifier = ">=1.2.2" },
-    { name = "pyyaml" },
 ]
 
 [[package]]
@@ -101,13 +93,15 @@ dependencies = [
     { name = "cloudpickle" },
     { name = "google-cloud-aiplatform", extra = ["adk", "agent-engines"] },
     { name = "pydantic" },
+    { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "cloudpickle" },
-    { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = ">=1.157.0" },
+    { name = "cloudpickle", specifier = "==3.0" },
+    { name = "google-cloud-aiplatform", extras = ["agent-engines", "adk"] },
     { name = "pydantic" },
+    { name = "python-dotenv" },
 ]
 
 [[package]]
@@ -323,11 +317,11 @@ wheels = [
 
 [[package]]
 name = "cloudpickle"
-version = "3.1.2"
+version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/27/fb/576f067976d320f5f0114a8d9fa1215425441bb35627b1993e5afd8111e5/cloudpickle-3.1.2.tar.gz", hash = "sha256:7fda9eb655c9c230dab534f1983763de5835249750e85fbcef43aaa30a9a2414", size = 22330, upload-time = "2025-11-03T09:25:26.604Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/72/42a6570fc61b1f8913529728ad314c7cf5961540728dcad22c33fb2db6b6/cloudpickle-3.0.0.tar.gz", hash = "sha256:996d9a482c6fb4f33c1a35335cf8afd065d2a56e973270364840712d9131a882", size = 21231, upload-time = "2023-10-16T12:51:26.352Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl", hash = "sha256:9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a", size = 22228, upload-time = "2025-11-03T09:25:25.534Z" },
+    { url = "https://files.pythonhosted.org/packages/96/43/dae06432d0c4b1dc9e9149ad37b4ca8384cf6eb7700cd9215b177b914f0a/cloudpickle-3.0.0-py3-none-any.whl", hash = "sha256:246ee7d0c295602a036e86369c77fecda4ab17b506496730f2f576d9016fd9c7", size = 20088, upload-time = "2023-10-16T12:51:24.415Z" },
 ]
 
 [[package]]

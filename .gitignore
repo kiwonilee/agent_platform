@@ -14,3 +14,12 @@ env/
 
 # OS
 .DS_Store
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+session.db
+
+# Logs
+*.log

@@ -3,13 +3,13 @@
 ## 🏛️ 1. 아키텍처 및 UV Workspace 구조
 
 ### 📦 구성 에이전트 패키지
-1. 🌤️ **`agent_runtime`** (`agent-runtime`)
+1. 📊 **`agent_registry`** (`agent-registry`)
+   - **역할**: Agent Registry에 등록된 BigQuery MCP를 연동하여 데이터를 분석하는 데이터 사이언티스트 에이전트
+   - **핵심 기능**: `Agent Registry` \| `MCP Integration` \| `Agent Runtime` \| `Memory Service` \| `Agent Observability`
+
+2. 🌤️ **`agent_runtime`** (`agent-runtime`)
    - **역할**: 날씨, 시간 등 공통 시스템 도구를 탑재한 기본 실행 에이전트
    - **핵심 기능**: `Agent Runtime` \| `Agent Identity` \| `Memory Service`
-
-2. 📊 **`agent_registry`** (`agent-registry`)
-   - **역할**: Agent Registry에 등록된 BigQuery MCP를 연동하여 데이터를 분석하는 데이터 사이언티스트 에이전트
-   - **핵심 기능**: `Agent Registry` \| `MCP Integration` \| `Agent Runtime` \| `Memory Service` \| `Agent Identity` \| `Agent Observability`
 
 3. 🛡️ **`agent_sandbox`** (`agent-sandbox`)
    - **역할**: 생성된 코드를 격리된 환경에서 안전하게 실행할 수 있도록 돕는 샌드박스 에이전트
@@ -21,16 +21,27 @@
 
 > **참고**: 각 에이전트별 특화된 배포 방법 및 요구되는 IAM 권한 설정, 구체적인 테스트 방법은 위 각 폴더의 `README.md`에 자세히 안내되어 있습니다.
 
----
 
-## 🛠️ 2. 환경 초기화 및 환경 변수 설정
-1. 초기화
+---
+## 🏛️ 2. 로컬에서 실행
+
+## 🛠️ 1. 로컬 환경에서 실행
+```bash
+# 최상위 루트 경로에서 실행 (로컬 가상환경 빌드 및 동기화)
+uv sync
+
+uv run adk web
+```
+
+## 🏛️ 3. 로컬에서 실행
+
+## 🛠️ 1. 환경 초기화 및 환경 변수 설정
+
+1. 환경 변수 파일 설정
    ```bash
    # 최상위 루트 경로에서 실행 (로컬 가상환경 빌드 및 동기화)
    uv sync
-   ```
-1. 환경 변수 파일 설정
-   ```bash
+
    # 1. 환경 변수 정의 (자신의 프로젝트 ID와 GCS 버킷 이름 지정)
    export PROJECT_ID="YOUR_PROJECT_ID"
    export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI"
@@ -40,7 +51,7 @@
        -e "s|your-gcs-bucket|${STAGING_BUCKET_URI}|g" \
        .env.template > .env
    ```
-3. 생성된 `.env` 파일을 각 에이전트 디렉토리로 직접 복사
+2. 생성된 `.env` 파일을 각 에이전트 디렉토리로 직접 복사
    ```bash
    cp .env agent_registry/.env
    cp .env agent_sandbox/.env
@@ -48,7 +59,6 @@
    cp .env agent_runtime/.env
    ```
 
----
 
 ## 🚀 3. Agent Runtime 에 배포
 
