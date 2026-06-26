@@ -1,42 +1,103 @@
-# Agent Registry MCP 연동 (#Agent Identity, #Agent Registry, #MCP, #Agent Runtime)
+# Agent Registry 의 MCP 를 연동하는 AI Agent
 
-## 🚀 배포 및 권한 설정
+## 🚀 Agent Runtime 배포를 위한 기본 설정
 
-### 1. Agent Runtime 에 배포
+### 1. 환경 변수 설정
+배포에 사용할 Google Cloud Project ID, Staging용 Cloud Storage 버킷 URI, 그리고 서비스 계정 이름을 정의합니다.
 
 ```bash
-uv run python agent_runtime.py
+cd ~/agent_platform/agent_registry
 ```
 
-### 2. Agent Identity에 대한 GCP IAM 권한 할당 (필수)
-배포 완료 후, 최종 출력된 에이전트의 고유 Identity가 연동된 서비스(Storage, BigQuery, Vertex AI 등)에 직접 인가될 수 있도록 권한을 할당합니다.
+```bash
+export PROJECT_ID="YOUR_PROJECT_ID"
+export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI" # gs://adk-sandbox-bucket
 
+export SERVICE_ACCOUNT="agent-registry-sa"
+```
+#### 2. 서비스 계정 생성 및 권한 설정
+```bash
+# 서비스 계정 이메일 주소 정의 (자동 매칭)
+export SA_EMAIL="${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# Cloud Trace 권한 부여 for Agent Trace
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/cloudtrace.user"
+
+# Cloud Logging 권한 부여 for Agent Trace
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/logging.viewer"
+
+# Cloud Logging 권한 부여
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/logging.logWriter"
+
+# 서비스 계정 생성
+gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
+    --description="Service account for Agent Registry deployment" \
+    --display-name="agent-registry-sa"
+
+# BigQuery 데이터 조회 및 작업 수행 권한 부여
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/bigquery.dataViewer"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/bigquery.jobUser"
+
+# Cloud Storage 객체 관리 권한 부여 (Staging Bucket 업로드용)
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/storage.objectAdmin"
+
+# Vertex AI API 사용 권한 부여
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/aiplatform.user"
+
+# MCP 도구 사용 권한 부여
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/mcp.toolUser"
+```
+
+### 3. `.env` 파일 생성 및 서비스 계정 추가
+부모 디렉토리의 환경 변수 템플릿(`.env.template`)을 참조하여 프로젝트 정보를 치환한 로컬 `.env` 파일을 생성하고, 배포에 사용할 서비스 계정 이메일 변수를 안전하게 등록합니다.
 
 ```bash
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
-    --role="roles/bigquery.dataViewer"
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
-    --role="roles/bigquery.jobUser"
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
-    --role="roles/storage.objectAdmin"
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
-    --role="roles/aiplatform.user"
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
-    --role="roles/mcp.toolUser"
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="principal://[EFFECTIVE_IDENTITY_URI]" \
-    --role="roles/agentregistry.viewer"
+# 1. 환경 변수 템플릿을 치환하여 로컬 .env 생성 (agent_registry 디렉토리 내부에서 실행)
+sed -e "s|your-project-id|${PROJECT_ID}|g" \
+    -e "s|your-gcs-bucket|${STAGING_BUCKET_URI}|g" \
+    ../.env.template > .env
+
+# 2. 서비스 계정 이메일을 배포 환경 변수로 추가 등록
+echo "SERVICE_ACCOUNT=${SA_EMAIL}" >> .env
+
+# 3. 설정이 정상적으로 적용되었는지 확인
+cat .env
+```
+
+---
+
+## 🚀 Agent Runtime 배포
+
+아래의 명령어를 실행하여 에이전트를 Vertex AI Agent Runtime에 성공적으로 배포합니다.
+```bash
+uv run python agent_runtime.py
 ```
 
 ---
 
 ## 🔍 테스트
 
+배포 완료 후 반환받은 `REASONING_ENGINE_ID`를 이용하여 에이전트와 대화를 시작하고 동작을 직접 검증합니다.
+
+### 1. 세션 생성
+새로운 세션을 생성하여 대화를 준비합니다.
 ```bash
 export REASONING_ENGINE_ID="[배포 후 발급받은 REASONING_ENGINE_ID]"
 export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
@@ -53,10 +114,10 @@ curl -X POST \
   }'
 ```
 
-세션이 생성된 후, 발급받은 `SESSION_ID`와 `REASONING_ENGINE_ID`를 환경 변수로 등록하고 아래와 같이 질문을 던져볼 수 있습니다.
-
+### 2. 쿼리 실행 (대화 테스트)
+세션 생성 성공 시 전달받은 `SESSION_ID`를 등록하여 BigQuery 데이터를 수집/조회하는 질문을 에이전트에게 던져봅니다.
 ```bash
-export SESSION_ID=343502069765767168
+export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
 
 curl -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
@@ -71,25 +132,3 @@ curl -X POST \
     }
   }'
 ```
-
-
-## 🛠️ 핵심 트러블슈팅: AGENT_IDENTITY 교착 상태 해결
-
-### 1. 문제 발생 원인
-* 에이전트를 `AGENT_IDENTITY` 방식으로 배포하면, 원격 리소스 ID가 실제로 완전 생성되기 전에는 해당 에이전트 전용 고유 Identity(Federated ID)가 부재하므로 사전에 대상 리소스나 MCP에 대한 IAM 권한을 부여할 수 없습니다.
-* 하지만 Vertex AI Reasoning Engine은 배포 프로세스 완료 직전 부트스트랩 단계에서 `agent.py` 코드를 컨테이너에 로드(import)하여 헬스체크를 수행합니다.
-* 이때 최상위(global) 스코프에 정의된 `get_mcp_toolset`이 즉시 실행되면서, **아직 권한 바인딩을 받지 못한 상태에서 Agent Registry API를 노크**하게 됩니다. 이로 인해 `403 Permission Denied` 예외가 발생하고 배포 프로세스가 즉시 실패(`failed to start and cannot serve traffic`)하는 닭과 달걀의 교착 상태가 발생합니다.
-
-### 2. 해결 방안 (Guarded MCP Toolset Load)
-`agent.py` 최상위 레벨의 `get_mcp_toolset` 획득 호출부를 안정적인 `try-except` 예외 완충 장치로 감쌉니다. 이로써 부트스트랩 시점의 불가피한 인가 거부 예외는 안전하게 경고 로그만 남기고 넘어가며, 배포 완료 후 본격 서빙 요청 시점에 정상적으로 동작할 수 있도록 가드합니다.
-
-```python
-# Guard MCP toolset load during remote container bootstrap phase (to avoid chicken-egg IAM Permission Denied loop under AGENT_IDENTITY)
-try:
-    mcp_toolset = registry.get_mcp_toolset(mcp_server_name=mcl_server_name)
-except Exception as e:
-    print(f"Warning: Bypassing MCP toolset load error (normal under AGENT_IDENTITY before IAM assignment): {e}")
-    mcp_toolset = None
-```
-
----
