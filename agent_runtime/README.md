@@ -2,19 +2,36 @@
 
 ## 🚀 Agent Runtime 배포를 위한 기본 설정
 
-### 1. 환경 변수 설정
-배포에 사용할 Google Cloud Project ID와 Staging용 Cloud Storage 버킷 URI를 정의합니다.
+### 1. 환경 변수 및 관련 API 활성화
+배포에 사용할 Google Cloud Project ID를 설정하고 필수 API들을 활성화한 후, 배포 관련 환경 변수를 정의합니다.
 
 ```bash
 cd ~/agent_platform/agent_runtime
 ```
 
 ```bash
-export PROJECT_ID="YOUR_PROJECT_ID"
-export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI"
+gcloud services enable \
+    aiplatform.googleapis.com \
+    agentregistry.googleapis.com \
+    logging.googleapis.com \
+    cloudtrace.googleapis.com \
+    storage.googleapis.com \
+    iam.googleapis.com
 ```
 
-#### 2. `.env` 파일 생성
+```bash
+export PROJECT_ID="YOUR_PROJECT_ID"
+export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
+```
+
+### 2. Cloud Storage 버킷 생성
+배포 산출물을 저장할 Google Cloud Storage 버킷을 생성합니다. (이미 사용 중인 버킷이 있다면 이 단계는 건너뛰셔도 됩니다.)
+
+```bash
+gcloud storage buckets create ${STAGING_BUCKET_URI} --location=us-central1
+```
+
+#### 3. `.env` 파일 생성
 부모 디렉토리의 환경 변수 템플릿(`.env.template`)을 참조하여 프로젝트 정보를 치환한 로컬 `.env` 파일을 생성합니다.
 
 ```bash

@@ -2,21 +2,38 @@
 
 ## 🚀 Agent Runtime 배포를 위한 기본 설정
 
-### 1. 환경 변수 설정
-배포에 사용할 Google Cloud Project ID, Staging용 Cloud Storage 버킷 URI, 그리고 서비스 계정 이름을 정의합니다.
+### 1. 환경 변수 및 관련 API 활성화
+배포에 사용할 Google Cloud Project ID를 설정하고 필수 API들을 활성화한 후, 배포 관련 환경 변수를 정의합니다.
 
 ```bash
 cd ~/agent_platform/graph_workflow
 ```
 
 ```bash
+gcloud services enable \
+    aiplatform.googleapis.com \
+    agentregistry.googleapis.com \
+    logging.googleapis.com \
+    cloudtrace.googleapis.com \
+    storage.googleapis.com \
+    iam.googleapis.com
+```
+
+```bash
 export PROJECT_ID="YOUR_PROJECT_ID"
-export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI" # gs://adk-sandbox-bucket
+export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
 
 export SERVICE_ACCOUNT="graph_workflow-sa"
 ```
 
-#### 2. 서비스 계정 생성 및 권한 설정
+### 2. Cloud Storage 버킷 생성
+배포 산출물을 저장할 Google Cloud Storage 버킷을 생성합니다. (이미 사용 중인 버킷이 있다면 이 단계는 건너뛰셔도 됩니다.)
+
+```bash
+gcloud storage buckets create ${STAGING_BUCKET_URI} --location=us-central1
+```
+
+#### 3. 서비스 계정 생성 및 권한 설정
 ```bash
 # 서비스 계정 이메일 주소 정의 (자동 매칭)
 export SA_EMAIL="${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
@@ -26,33 +43,25 @@ gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
     --description="Service account for Agent Registry deployment" \
     --display-name="agent-registry-sa"
 
-# Cloud Trace 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/cloudtrace.user"
 
-# Cloud Trace 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/cloudtrace.agent"
+# 필요한 IAM 역할 목록
+ROLES=(
+     "roles/cloudtrace.user"
+    "roles/cloudtrace.agent"
+    "roles/logging.viewer"
+    "roles/logging.logWriter"
+    "roles/aiplatform.user"
+)
 
-# Cloud Logging 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/logging.viewer"
-
-# Cloud Logging 권한 부여
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/logging.logWriter"
-
-# Vertex AI API 사용 권한 부여
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/aiplatform.user"
+# 반복문을 통해 권한 일괄 부여
+for ROLE in "${ROLES[@]}"; do
+    gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+        --member="serviceAccount:${SA_EMAIL}" \
+        --role="${ROLE}"
+done
 ```
 
-### 3. `.env` 파일 생성 및 서비스 계정 추가
+### 4. `.env` 파일 생성 및 서비스 계정 추가
 부모 디렉토리의 환경 변수 템플릿(`.env.template`)을 참조하여 프로젝트 정보를 치환한 로컬 `.env` 파일을 생성하고, 배포에 사용할 서비스 계정 이메일 변수를 안전하게 등록합니다.
 
 ```bash
