@@ -6,7 +6,6 @@ import vertexai
 
 from vertexai import types
 from vertexai.agent_engines import AdkApp
-from agent import root_agent as agent
 
 # Load environment variables from .env
 load_dotenv(override=True)
@@ -17,7 +16,7 @@ LOCATION = os.environ.get("GCP_RESOURCES_LOCATION", "us-central1")
 STAGING_BUCKET = os.environ.get("STAGING_BUCKET_URI")
 
 # Initialize the Agent Platform client
-print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION}, Service Account: {SERVICE_ACCOUNT})...")
+print(f"Initializing Vertex AI Client (Project: {PROJECT_ID}, Location: {LOCATION}")
 client = vertexai.Client(
     project=PROJECT_ID,
     location=LOCATION
@@ -66,7 +65,7 @@ remote_agent = client.agent_engines.update(
             "google-adk==2.2.0",
             "google-cloud-aiplatform[adk,agent_engines]==1.157.0",
             "pydantic==2.13.4",
-            "cloudpickle==3.1.2",
+            "cloudpickle>=3.0.0",
         ],
         "staging_bucket": STAGING_BUCKET,
         "extra_packages": ["agent.py"],

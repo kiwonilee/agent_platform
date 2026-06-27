@@ -2,20 +2,66 @@
 
 ## 🚀 Agent Runtime 배포를 위한 기본 설정
 
-### 1. 환경 변수 설정
-배포에 사용할 Google Cloud Project ID와 Staging용 Cloud Storage 버킷 URI를 정의합니다.
+### 1. 환경 변수 및 관련 API 활성화
+배포에 사용할 Google Cloud Project ID를 설정하고 필수 API들을 활성화한 후, 배포 관련 환경 변수를 정의합니다.
 
 ```bash
 cd ~/agent_platform/agent_sandbox
 ```
 
 ```bash
-export PROJECT_ID="YOUR_PROJECT_ID"
-export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI"
+gcloud services enable \
+    aiplatform.googleapis.com \
+    logging.googleapis.com \
+    cloudtrace.googleapis.com \
+    storage.googleapis.com \
+    iam.googleapis.com
 ```
 
-#### 2. `.env` 파일 생성
-부모 디렉토리의 환경 변수 템플릿(`.env.template`)을 참조하여 프로젝트 정보를 치환한 로컬 `.env` 파일을 생성합니다.
+```bash
+export PROJECT_ID="YOUR_PROJECT_ID"
+
+export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
+export SERVICE_ACCOUNT="agent-sandbox-sa"
+```
+
+### 2. Cloud Storage 버킷 생성
+배포 산출물을 저장할 Google Cloud Storage 버킷을 생성합니다. (이미 사용 중인 버킷이 있다면 이 단계는 건너뛰셔도 됩니다.)
+
+```bash
+gcloud storage buckets create ${STAGING_BUCKET_URI} --location=us-central1
+```
+
+### 3. 서비스 계정 생성 및 권한 설정
+```bash
+# 서비스 계정 이메일 주소 정의 (자동 매칭)
+export SA_EMAIL="${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# 서비스 계정 생성
+gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
+    --description="Service account for Agent Sandbox deployment" \
+    --display-name="agent-sandbox-sa"
+
+# 필요한 IAM 역할 목록
+ROLES=(
+    "roles/cloudtrace.user"
+    "roles/cloudtrace.agent"
+    "roles/logging.viewer"
+    "roles/logging.logWriter"
+    "roles/storage.objectAdmin"
+    "roles/aiplatform.user"
+)
+
+# 반복문을 통해 권한 일괄 부여
+for ROLE in "${ROLES[@]}"; do
+    gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+        --member="serviceAccount:${SA_EMAIL}" \
+        --role="${ROLE}"
+done
+```
+
+### 4. `.env` 파일 생성 및 서비스 계정 추가
+부모 디렉토리의 환경 변수 템플릿(`.env.template`)을 참조하여 프로젝트 정보를 치환한 로컬 `.env` 파일을 생성하고, 배포에 사용할 서비스 계정 이메일 변수를 안전하게 등록합니다.
 
 ```bash
 # 1. 환경 변수 템플릿을 치환하여 로컬 .env 생성 (agent_sandbox 디렉토리 내부에서 실행)
@@ -23,11 +69,14 @@ sed -e "s|your-project-id|${PROJECT_ID}|g" \
     -e "s|your-gcs-bucket|${STAGING_BUCKET_URI}|g" \
     ../.env.template > .env
 
-# 2. 설정이 정상적으로 적용되었는지 확인
+# 2. 서비스 계정 이메일을 배포 환경 변수로 추가 등록
+echo "SERVICE_ACCOUNT=${SA_EMAIL}" >> .env
+
+# 3. 최종 설정이 정상적으로 반영되었는지 확인
 cat .env
 ```
 
-#### 3. 코드 실행기(Code Executor) 구성 선택
+#### 5. 코드 실행기(Code Executor) 구성 선택
 현재 에이전트는 강력한 보안 격리와 아티팩트 보존이 지원되는 **Vertex AI 관리형 샌드박스(`AgentEngineSandboxCodeExecutor`)**를 메인 코드 실행 환경으로 고정하여 구성하고 있습니다.
 
 * **격리된 보안 환경**: Google Cloud 내부의 전용 다중 레이어 격리 가상 환경에서 파이썬 코드가 컴파일 및 실행됩니다.
@@ -54,14 +103,15 @@ uv run python agent_runtime.py
   ```text
   Initializing Vertex AI Client (Project: gcp-sandbox-kwlee, Location: us-central1)...
   Creating top-level AgentEngine container...
-  ✅ AgentEngine container created: projects/458778613248/locations/us-central1/agentEngines/4389363118023639040
-  Creating Agent Sandbox under projects/458778613248/locations/us-central1/agentEngines/4389363118023639040...
-  ✅ Sandbox created successfully! Resource name: projects/458778613248/locations/us-central1/sandboxes/4389363118023639040
+  ✅ Agent Runtime container created: projects/458778613248/locations/us-central1/reasoningEngines/4575110214373605376
+  Creating Agent Sandbox under projects/458778613248/locations/us-central1/reasoningEngines/4575110214373605376...
+  ✅ Sandbox created successfully! Resource name: projects/458778613248/locations/us-central1/reasoningEngines/4575110214373605376/sandboxEnvironments/3749626021297520640
+  Injecting SANDBOX_RESOURCE_NAME into local environment: projects/458778613248/locations/us-central1/reasoningEngines/4575110214373605376/sandboxEnvironments/3749626021297520640
   Wrapping agent in AdkApp...
-  Deploying Agent to Vertex AI Agent Runtime...
+  Deploying Agent to Agent Runtime container...
   
   ✅ Deployment successful!
-  Remote Agent Name: projects/458778613248/locations/us-central1/reasoningEngines/4389363118023639040
+  Remote Agent Name: projects/458778613248/locations/us-central1/reasoningEngines/4575110214373605376
   ```
 
 ---
