@@ -43,11 +43,10 @@ remote_agent = client.agent_engines.create(
         "env_vars": {
             "GOOGLE_CLOUD_LOCATION": "global",
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+            "ADK_SESSION_SERVICE_URI": "agentengine://",
+            "ADK_MEMORY_SERVICE_URI": "agentengine://",
+            "ADK_ARTIFACT_SERVICE_URI": "agentengine://",
             # SessionService, MemoryService, ArtifactService
-            "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
-            "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
-            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
-            # Telemetry
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
             "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY"
