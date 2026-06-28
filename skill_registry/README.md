@@ -114,8 +114,9 @@ curl -X POST \
 세션 생성 성공 시 전달받은 `SESSION_ID`를 등록하여 Skill Registry의 플레이북 지식을 RAG 검색 및 지식 기반 답변으로 유도하는 질문을 에이전트에게 던져봅니다.
 ```bash
 export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
+export MESSAGE="GKE 의 Cluster Upgrade 에 대한 Best Practice 에 대해서 알려줘"
 
-curl -X POST \
+curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
   https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
@@ -124,9 +125,9 @@ curl -X POST \
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "GKE 의 Cluster Upgrade 에 대한 Best Practice 에 대해서 알려줘"
+      "message": "'"${MESSAGE}"'"
     }
-  }'
+  }' | jq '.'
 ```
 
 ---

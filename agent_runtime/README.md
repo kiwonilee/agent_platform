@@ -98,9 +98,8 @@ curl -X POST \
 세션 생성 성공 시 전달받은 `SESSION_ID`를 등록하여 날씨와 시간을 조회하는 질문을 에이전트에게 던져봅니다.
 ```bash
 export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
-export MESSAGE="뉴욕의 현재 날씨와 현재 시간을 알려줘."
 
-curl -X POST \
+curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
   https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
@@ -109,7 +108,7 @@ curl -X POST \
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "'"${MESSAGE}"'"
+      "message": "'"뉴욕의 현재 날씨와 현재 시간을 알려줘."'"
     }
-  }'
+  }' | jq '.'
 ```

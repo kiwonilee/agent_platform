@@ -23,7 +23,7 @@ gcloud services enable \
 export PROJECT_ID="YOUR_PROJECT_ID"
 export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
 
-export SERVICE_ACCOUNT="graph_workflow-sa"
+export SERVICE_ACCOUNT="graph-workflow-sa"
 ```
 
 ### 2. Cloud Storage 버킷 생성
@@ -116,19 +116,16 @@ export LOCATION="us-central1"
 
 ---
 
-### 1️⃣ [Case 0] 세션 생성 (`create_session`)
-대화 상태와 메모리 동기화를 처리하기 위해 고유한 세션(Session)을 원격 엔진에 생성합니다.
-
-- **Request URL**: `POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}:query`
-- **Headers**:
-  - `Authorization: Bearer $(gcloud auth print-access-token)`
-  - `Content-Type: application/json`
-- **Curl 명령어**:
+### 1. 세션 생성
+새로운 세션을 생성하여 대화를 준비합니다.
 ```bash
+export REASONING_ENGINE_ID="[배포 후 발급받은 REASONING_ENGINE_ID]"
+export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
+
 curl -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
-  https://${LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}:query \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:query \
   -d '{
     "class_method": "create_session",
     "input": {
@@ -136,41 +133,26 @@ curl -X POST \
     }
   }'
 ```
-- **Response 예시 (추출할 SESSION_ID 확인)**:
-```json
-{
-  "output": {
-    "id": "603208915269713920",
-    "user_id": "test_user",
-    ...
-  }
-}
-```
-받은 응답에서 `"id"` 필드의 값(예: `603208915269713920`)을 아래 환경 변수로 등록합니다:
-```bash
-export SESSION_ID="[응답에서 받은 id 값]"
-```
-
----
 
 ### 2️⃣ [Case 1] 일정 추천 서비스 기동 (첫 번째 HITL 대기)
 에이전트에게 서비스를 요청하면 에이전트는 필요한 입력 정보(도시, 연령대, 취미 등)가 누락되어 있음을 인지하고, `RequestInput`을 발생시켜 입력을 대기(`PAUSED` 상태)합니다.
 
-- **Request URL**: `POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery`
-- **Curl 명령어**:
 ```bash
-curl -X POST \
+export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
+export MESSAGE="여행 일정 추천 서비스를 시작해줘."
+
+curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
-  https://${LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
   -d '{
     "class_method": "async_stream_query",
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "일정 추천 서비스를 시작해줘."
+      "message": "'"${MESSAGE}"'",
     }
-  }'
+  }' | jq '.'
 ```
 
 ---
@@ -178,24 +160,35 @@ curl -X POST \
 ### 3️⃣ [Case 2] 선호 정보 전달 및 여행 일정 생성 (두 번째 HITL 대기)
 에이전트가 대기하고 있는 상태에서 동일한 세션 ID로 여행 취향 정보를 전달합니다. 에이전트는 이를 Resume하여 5개 이상의 상세 일정이 담긴 `ActivitiesList` 리스트를 출력한 후, 사용자 피드백을 수렴하기 위해 다시 `RequestInput`을 발생시키고 대기(`PAUSED` 상태)합니다.
 
-- **Request URL**: `POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery`
-- **Curl 명령어**:
 ```bash
-curl -X POST \
+
+export INTERRUPT_ID="[Case 1에서 받은 interruptId]"
+
+curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
-  https://${LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
   -d '{
     "class_method": "async_stream_query",
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "도시: 서울, 연령대: 20대, 취미: 맛집 탐방 및 야간 사진 촬영, 좋아했던 관광지: 경복궁 야간 개장",
-      "resume_inputs": {
-        "[Case 1에서 받은 interruptId]": "도시: 서울, 연령대: 20대, 취미: 맛집 탐방 및 야간 사진 촬영, 좋아했던 관광지: 경복궁 야간 개장"
+      "message": {
+        "role": "user",
+        "parts": [
+          {
+            "function_response": {
+              "name": "adk_request_input",
+              "id": "'"${INTERRUPT_ID}"'",
+              "response": {
+                "user response": "도시: 서울, 연령대: 20대, 취미: 맛집 탐방 및 야간 사진 촬영, 좋아했던 관광지: 경복궁 야간 개장"
+              }
+            }
+          }
+        ]
       }
     }
-  }'
+  }' | jq '.'
 ```
 
 ---
@@ -203,24 +196,35 @@ curl -X POST \
 ### 4️⃣ [Case 3] 피드백 루프백 및 일정 반영 업데이트 (완료 및 다음 대기)
 사용자가 추천된 일정 중 특정 코스를 다른 코스로 변경해달라는 피드백을 보냅니다. 에이전트는 이를 분석하여 피드백 반영 후 수정된 최종 여행 코스를 갱신하여 반환합니다.
 
-- **Request URL**: `POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery`
-- **Curl 명령어**:
+
 ```bash
-curl -X POST \
+export INTERRUPT_ID="[Case 2에서 받은 interruptId]"
+
+curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
-  https://${LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
+  https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
   -d '{
     "class_method": "async_stream_query",
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "기본 추천 일정 중 2번 맛집 탐방 대신, '\''경복궁 야간 한복 체험 및 인생샷 명소 투어'\''로 일정을 교체하고 상세 설명을 업데이트해줘.",
-      "resume_inputs": {
-        "[Case 2에서 받은 interruptId]": "기본 추천 일정 중 2번 맛집 탐방 대신, '\''경복궁 야간 한복 체험 및 인생샷 명소 투어'\''로 일정을 교체하고 상세 설명을 업데이트해줘."
+      "message": {
+        "role": "user",
+        "parts": [
+          {
+            "function_response": {
+              "name": "adk_request_input",
+              "id": "'"${INTERRUPT_ID}"'",
+              "response": {
+                "user response": "기본 추천 일정 중 2번 대신, 경복궁 야간 한복 체험 및 인생샷 명소 투어로 일정을 교체하고 상세 설명을 데이트해줘."
+              }
+            }
+          }
+        ]
       }
     }
-  }'
+  }' | jq '.'
 ```
 
 

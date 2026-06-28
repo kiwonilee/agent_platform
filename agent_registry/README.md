@@ -132,7 +132,7 @@ curl -X POST \
 ```bash
 export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
 
-curl -X POST \
+curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
   https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
@@ -141,7 +141,7 @@ curl -X POST \
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "최근 발생한 에러로그 5개를 분석해줘."
+      "message": "현재 project 는 gcp-sandbox-kwlee 이다. 최근 발생한 에러로그 5개를 분석해줘."
     }
-  }'
+  }' | jq '.'
 ```

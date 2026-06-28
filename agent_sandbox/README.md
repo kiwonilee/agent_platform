@@ -142,8 +142,10 @@ curl -X POST \
 세션 생성 성공 시 전달받은 `SESSION_ID`를 등록하여 샌드박스 내부에서 실제 코드 연산이 동반되는 질문을 에이전트에게 던져봅니다.
 ```bash
 export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
+export MESSAGE="1부터 100까지의 숫자 중 소수(Prime Number)의 개수를 구하는 파이썬 코드를 작성하고 실행 결과를 알려줘."
 
-curl -X POST \
+
+curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
   https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_NUMBER}/locations/us-central1/reasoningEngines/${REASONING_ENGINE_ID}:streamQuery \
@@ -152,9 +154,9 @@ curl -X POST \
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "1부터 100까지의 숫자 중 소수(Prime Number)의 개수를 구하는 파이썬 코드를 작성하고 실행 결과를 알려줘."
+      "message": "'"${MESSAGE}"'"
     }
-  }'
+  }' | jq '.'
 ```
 
 ---
