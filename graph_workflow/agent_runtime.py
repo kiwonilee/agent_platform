@@ -3,12 +3,12 @@ import sys
 import vertexai
 
 from dotenv import load_dotenv
+# Load environment variables from .env
+load_dotenv(override=True)
+
 from vertexai import types
 from vertexai.agent_engines import AdkApp
 from agent import root_agent as agent
-
-# Load environment variables from .env
-load_dotenv(override=True)
 
 # Configuration parameters
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")

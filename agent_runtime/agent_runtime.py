@@ -3,12 +3,11 @@ import sys
 import vertexai
 
 from dotenv import load_dotenv
+load_dotenv(override=True)
 
 from vertexai import types
 from vertexai.agent_engines import AdkApp
 from agent import root_agent as agent
-
-load_dotenv(override=True)
 
 # Configuration parameters
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
@@ -72,6 +71,10 @@ remote_agent = client.agent_engines.create(
         "env_vars": {
             "GOOGLE_CLOUD_LOCATION": "global",
             "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+            # SessionService, MemoryService, ArtifactService
+            "ADK_SESSION_SERVICE_URI": "agentengine://",
+            "ADK_MEMORY_SERVICE_URI": "agentengine://",
+            "ADK_ARTIFACT_SERVICE_URI": STAGING_BUCKET,
             # Telemetry (https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/tracing?hl=ko#write-traces)
             "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
             "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
