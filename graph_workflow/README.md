@@ -23,7 +23,7 @@ gcloud services enable \
 export PROJECT_ID="YOUR_PROJECT_ID"
 export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
 
-export SERVICE_ACCOUNT="graph-workflow-sa"
+export SERVICE_ACCOUNT="sa-graph-workflow"
 ```
 
 ### 2. Cloud Storage 버킷 생성
@@ -41,7 +41,7 @@ export SA_EMAIL="${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
 # 서비스 계정 생성
 gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
     --description="Service account for Agent Registry deployment" \
-    --display-name="agent-registry-sa"
+    --display-name="graph-workflow-sa"
 
 
 # 필요한 IAM 역할 목록
@@ -106,16 +106,6 @@ uv run python agent_runtime.py
 
 ---
 
-### 0. 공통 환경 변수 정의
-테스트를 더 쉽게 진행하기 위해 터미널에 아래 환경 변수들을 먼저 설정해주세요.
-```bash
-export REASONING_ENGINE_ID="1364888104988573696"
-export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
-export LOCATION="us-central1"
-```
-
----
-
 ### 1. 세션 생성
 새로운 세션을 생성하여 대화를 준비합니다.
 ```bash
@@ -163,6 +153,7 @@ curl -s -X POST \
 ```bash
 
 export INTERRUPT_ID="[Case 1에서 받은 interruptId]"
+export MESSAGE="도시: 서울, 연령대: 20대, 취미: 맛집 탐방 및 야간 사진 촬영, 좋아했던 관광지: 경복궁 야간 개장"
 
 curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
@@ -181,7 +172,7 @@ curl -s -X POST \
               "name": "adk_request_input",
               "id": "'"${INTERRUPT_ID}"'",
               "response": {
-                "user response": "도시: 서울, 연령대: 20대, 취미: 맛집 탐방 및 야간 사진 촬영, 좋아했던 관광지: 경복궁 야간 개장"
+                "user response": "'"${MESSAGE}"'",
               }
             }
           }
@@ -199,6 +190,7 @@ curl -s -X POST \
 
 ```bash
 export INTERRUPT_ID="[Case 2에서 받은 interruptId]"
+export MESSAGE="기본 추천 일정 중 2번 대신, 경복궁 야간 한복 체험 및 인생샷 명소 투어로 일정을 교체하고 상세 설명을 데이트해줘."
 
 curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
@@ -217,7 +209,7 @@ curl -s -X POST \
               "name": "adk_request_input",
               "id": "'"${INTERRUPT_ID}"'",
               "response": {
-                "user response": "기본 추천 일정 중 2번 대신, 경복궁 야간 한복 체험 및 인생샷 명소 투어로 일정을 교체하고 상세 설명을 데이트해줘."
+                "user response": "'"${MESSAGE}"'",
               }
             }
           }

@@ -23,7 +23,7 @@ gcloud services enable \
 export PROJECT_ID="YOUR_PROJECT_ID"
 
 export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
-export SERVICE_ACCOUNT="agent-registry-sa"
+export SERVICE_ACCOUNT="sa-agent-registry"
 ```
 
 ### 2. Cloud Storage 버킷 생성
@@ -131,6 +131,7 @@ curl -X POST \
 세션 생성 성공 시 전달받은 `SESSION_ID`를 등록하여 BigQuery 데이터를 수집/조회하는 질문을 에이전트에게 던져봅니다.
 ```bash
 export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
+export MESSAGE="현재 project 는 gcp-sandbox-kwlee 이다. 최근 발생한 에러로그 5개를 분석해줘."
 
 curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
@@ -141,7 +142,7 @@ curl -s -X POST \
     "input": {
       "user_id": "test_user",
       "session_id": "'"${SESSION_ID}"'",
-      "message": "현재 project 는 gcp-sandbox-kwlee 이다. 최근 발생한 에러로그 5개를 분석해줘."
+      "message": "'"${MESSAGE}"'",
     }
   }' | jq '.'
 ```

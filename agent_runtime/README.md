@@ -57,17 +57,32 @@ uv run python agent_runtime.py
 ---
 
 ## 🔑 Agent Identity 권한 설정 (필수)
-배포 완료 후, 최종 출력된 에이전트의 고유 Identity가 Gemini AI 모델(Vertex AI)을 호출하고 동작할 수 있도록 필요한 권한을 할당합니다.
 
-> [!WARNING]
-> Agent Identity 바인딩 시에는 `user`나 `serviceAccount` 대신, 반드시 **Workload Identity URI 형식(`principal://`)**을 member 인자로 지정해야 오류가 나지 않습니다.
 
 ```bash
-export EFFECTIVE_IDENTITY="[출력된 Agent Identity 값 (e.g. projects/...)]"
+export AGENT_IDENTITY="xxxxxx"
 
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="principal://${EFFECTIVE_IDENTITY}" \
+gcloud projects add-iam-policy-binding gcp-sandbox-kwlee \
+    --member="principal://$AGENT_IDENTITY" \
+    --role="roles/aiplatform.viewer"
+gcloud projects add-iam-policy-binding gcp-sandbox-kwlee \
+    --member="principal://$AGENT_IDENTITY" \
     --role="roles/aiplatform.user"
+gcloud projects add-iam-policy-binding gcp-sandbox-kwlee \
+    --member="principal://$AGENT_IDENTITY" \
+    --role="roles/serviceusage.serviceUsageConsumer"
+gcloud projects add-iam-policy-binding gcp-sandbox-kwlee \
+    --member="principal://$AGENT_IDENTITY" \
+    --role="roles/apptopology.viewer"
+gcloud projects add-iam-policy-binding gcp-sandbox-kwlee \
+    --member="principal://$AGENT_IDENTITY" \
+    --role="roles/agentregistry.viewer"
+gcloud projects add-iam-policy-binding gcp-sandbox-kwlee \
+    --member="principal://$AGENT_IDENTITY" \
+    --role="roles/cloudtrace.user"
+gcloud projects add-iam-policy-binding gcp-sandbox-kwlee \
+    --member="principal://$AGENT_IDENTITY" \
+    --role="roles/logging.viewer"
 ```
 
 ---

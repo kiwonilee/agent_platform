@@ -22,7 +22,7 @@ gcloud services enable \
 export PROJECT_ID="YOUR_PROJECT_ID"
 
 export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
-export SERVICE_ACCOUNT="agent-sandbox-sa"
+export SERVICE_ACCOUNT="sa-agent-sandbox"
 ```
 
 ### 2. Cloud Storage 버킷 생성
@@ -143,7 +143,6 @@ curl -X POST \
 ```bash
 export SESSION_ID="[위 단계에서 발급받은 SESSION_ID]"
 export MESSAGE="1부터 100까지의 숫자 중 소수(Prime Number)의 개수를 구하는 파이썬 코드를 작성하고 실행 결과를 알려줘."
-
 
 curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \

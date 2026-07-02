@@ -11,9 +11,9 @@ cd ~/agent_platform/skill_registry
 
 ```bash
 export PROJECT_ID="YOUR_PROJECT_ID"
-export STAGING_BUCKET_URI="gs://YOUR_STAGING_BUCKET_URI"
+export STAGING_BUCKET_URI="gs://adk-${PROJECT_ID}"
 
-export SERVICE_ACCOUNT="skill-registry-sa"
+export SERVICE_ACCOUNT="sa-skill-registry"
 ```
 
 #### 2. 서비스 계정 생성 및 권한 설정
@@ -26,38 +26,22 @@ gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
     --description="Service account for Agent Registry deployment" \
     --display-name="skill-registry-sa"
 
-# Cloud Trace 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/cloudtrace.user"
+# 필요한 IAM 역할(Role) 목록 정의
+ROLES=(
+    "roles/cloudtrace.user"
+    "roles/cloudtrace.agent"
+    "roles/logging.viewer"
+    "roles/logging.logWriter"
+    "roles/aiplatform.user"
+    "roles/serviceusage.serviceUsageConsumer"
+)
 
-# Cloud Trace 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/cloudtrace.agent"
-
-# Cloud Logging 권한 부여 for Agent Trace
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/logging.viewer"
-
-# Cloud Logging 권한 부여
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/logging.logWriter"
-
-# Vertex AI API 사용 권한 부여
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/aiplatform.user"
-
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/aiplatform.user"
-
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/serviceusage.serviceUsageConsumer"
+# 각 역할 순회하며 서비스 계정에 권한 부여
+for ROLE in "${ROLES[@]}"; do
+    gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+        --member="serviceAccount:${SA_EMAIL}" \
+        --role="${ROLE}"
+done
 ```
 
 ### 3. `.env` 파일 생성 및 서비스 계정 추가
