@@ -86,7 +86,8 @@ export MCP_SERVER_NAME=$(gcloud alpha agent-registry mcp-servers list \
     --filter="displayName:logging.googleapis.com" \
     --format="value(name.basename())")
 
-echo "MCP_SERVER_NAME=\"mcpServers/${MCP_SERVER_NAME}\"" >> .env
+echo "MCP_SERVER_NAME=\"projects/${PROJECT_ID}/locations/global/mcpServers/${MCP_SERVER_NAME}\"" >> .env
+
 
 # 2. 최종 설정이 정상적으로 반영되었는지 확인
 cat .env
