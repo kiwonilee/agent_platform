@@ -15,8 +15,8 @@
 import datetime
 from zoneinfo import ZoneInfo
 from google.adk.agents import Agent
-from google.adk.agents.callback_context import CallbackContext
 
+from google.adk.agents.callback_context import CallbackContext
 # from google.adk.tools.load_memory_tool import LoadMemoryTool
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 
@@ -49,33 +49,32 @@ def get_current_time(city: str) -> dict:
     return {"status": "success", "report": report}
 
 
-# # https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#manage-memories
+# [Option 1 for Memory] 최근 발생한 이벤트의 일부(코드 설정 가능)를 Memory 에 전달 (권장방식)
+# 최근 발생한 턴의 대화 맥락만 전달하여 새롭게 추가된 사실/선호도만 점진적으로 반영하기 위한 목적으로 적합 (매 턴 호출 권장)
+# https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#manage-memories
+async def add_events_to_memory_callback(callback_context: CallbackContext):
+    # 세션의 전체 대화 이벤트 중 '최근 4개의 이벤트(뒤에서 5번째부터 1번째 까지 선택)'만을 선택하여 Memory Bank에 전달하겠다는 의미
+    await callback_context.add_events_to_memory(events=callback_context.session.events[-5:-1])
+    return None
+
+# [Option 2 for Memory] 세션에 포함된 모든 이벤트를 항상 Memory 에 저장, 이미 처리 했던 대화 이벤트도 중복 전달
+# 세션 전체의 시작부터 끝까지의 흐름을 한눈에 볼 수 있어, 세션 전반에 걸쳐 분산된 복합적인 맥락을 한 번에 정리하기 좋기 때문에 세션이 완전히 끝난 후 세션 정리용으로 적합 (세션 종료 시점에 호출 권장)
+# https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#manage-memories
 # async def add_session_to_memory_callback(callback_context: CallbackContext):
 #     await callback_context.add_session_to_memory()
 #     return None
 
 
-# https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart?hl=ko#memory-generation-callback
-async def generate_memories_callback(callback_context: CallbackContext):
-    # Option 1 (Recommended): Send events to Memory Bank for memory generation,
-    # which is ideal for incremental processing of events.
-    await callback_context.add_events_to_memory(
-        events=callback_context.session.events[-5:-1]
-    )
-
-    # Option 2: Send the full session to Memory Bank for memory generation.
-    # It's recommended to only call this at the end of a session to minimize
-    # how many times a single event is re-processed.
-    # await callback_context.add_session_to_memory()
-    return None
-
-
 root_agent = Agent(
     name="weather_time_agent",
-    model="gemini-3.5-flash",
+    model="gemini-3.8-flash",
     description="Agent to answer questions about the time and weather in a city.",
     instruction="You are a helpful agent who can answer user questions about the time and weather in a city.",
-    after_agent_callback=generate_memories_callback,
-    # https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart?hl=ko#define_a_memory_retrieval_tool
+    after_agent_callback=add_events_to_memory_callback,    
+
+    # [Option 1 for Memory] 매 턴의 시작 시점에 무조건 호출 (https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#define_a_memory_retrieval_tool)
     tools=[get_weather, get_current_time, PreloadMemoryTool()],
+
+    # [Option 2 for Memory] 모델이 판단하여 필요하다고 결정할때만 호출 (https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart#define_a_memory_retrieval_tool)
+    # tools=[get_weather, get_current_time, LoadMemoryTool()],
 )
