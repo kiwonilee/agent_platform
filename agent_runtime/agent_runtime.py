@@ -3,7 +3,7 @@ import json
 from dotenv import load_dotenv
 
 import agentplatform
-from agentplatform.frameworks import AdkApp  # <-- AdkApp 하나만 추가!
+from agentplatform.frameworks import AdkApp
 from agent import root_agent as agent
 
 # Configuration parameters
@@ -49,7 +49,7 @@ memory_bank_config = {
         }
     ],
 }
-print(f"⚙️ Setting the Memory Bank config:\n{json.dumps(memory_bank_config, indent=2)}")
+print(f"🛠️ Setting the Memory Bank config:\n{json.dumps(memory_bank_config, indent=2)}")
 
 # Create a new resource with your agent deployed to Agent Runtime.
 # https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent#create-agent-platform-instance
@@ -88,7 +88,7 @@ agent_runtime_config={
     },
     "context_spec": {"memory_bank_config": memory_bank_config},
 }
-print(f"⚙️ Setting the Agent Runtime config Bank config:\n{json.dumps(agent_runtime_config, indent=2)}")
+print(f"🛠️ Setting the Agent Runtime config Bank config:\n{json.dumps(agent_runtime_config, indent=2)}")
 
 # Create Agent Runtime (https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent#create-agent-platform-instance)
 existing = next((e for e in client.runtimes.list() if e.api_resource.display_name == agent_runtime_config["display_name"]), None)
